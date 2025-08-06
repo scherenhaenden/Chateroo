@@ -1,16 +1,22 @@
-import { Body, Controller, Param, Post } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 import { ChatService } from './chat.service';
-import { ChatPayload, ChatResponse } from './ai-engine/ai-api-engine.base';
+import { ChatPayload } from './ai-engine/ai-api-engine.base';
 
-@Controller('chat')
+// DTO für eingehende Anfragen als Klasse definieren
+class ChatRequestDto implements ChatPayload {
+  provider: string;
+  prompt: string;
+  apiKey?: string;
+}
+
+@Controller('api/chat')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
-  @Post(':provider')
-  async sendMessage(
-    @Param('provider') provider: string,
-    @Body() payload: ChatPayload,
-  ): Promise<ChatResponse> {
-    return this.chatService.sendMessage(provider, payload);
+  @Post()
+  sendMessage(@Body() requestDto: ChatRequestDto) {
+    const { provider, ...payload } = requestDto;
+    return this.chatService.handleMessage(provider, payload);
   }
 }
+
