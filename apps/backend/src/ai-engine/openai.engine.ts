@@ -6,7 +6,7 @@ export class OpenAiEngine extends AiApiEngine {
   readonly provider = 'openai';
 
   /**
-   * Sends a message using the provided payload and returns a chat response.
+   * Sends a message using the provided payload and returns a chat response, handling missing API key.
    */
   async sendMessage(payload: ChatPayload): Promise<ChatResponse> {
     // HINWEIS: Dies ist eine Platzhalter-Implementierung.
