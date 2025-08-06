@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { ChatService, SendMessagePayload } from './core/services/chat.service';
+import { ChatService } from './core/services/chat.service';
 import { ChatMessage } from './models/chat.model';
 
 @Component({
@@ -19,7 +19,7 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.chatForm = this.fb.group({
-      provider: ['dummy', Validators.required],
+      provider: ['lm-studio', Validators.required],
       prompt: ['', Validators.required],
       apiKey: [''],
     });
@@ -27,7 +27,7 @@ export class AppComponent implements OnInit {
     // Begrüßungsnachricht
     this.messages.push({
       sender: 'ai',
-      text: 'Hallo! Wie kann ich dir heute helfen?',
+      text: 'Hallo! Wähle einen Provider und stelle eine Frage.',
     });
   }
 
@@ -42,13 +42,7 @@ export class AppComponent implements OnInit {
     this.isLoading = true;
     this.chatForm.get('prompt')?.disable();
 
-    const payload: SendMessagePayload = {
-      provider: formValue.provider,
-      prompt: formValue.prompt,
-      apiKey: formValue.apiKey,
-    };
-
-    this.chatService.sendMessage(payload).subscribe({
+    this.chatService.sendMessage(formValue).subscribe({
       next: (res) => {
         // Ersetze die Lade-Nachricht mit der echten Antwort
         const lastMessageIndex = this.messages.length - 1;
