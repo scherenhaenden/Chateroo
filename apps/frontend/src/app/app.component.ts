@@ -17,6 +17,9 @@ export class AppComponent implements OnInit {
 
   constructor(private fb: FormBuilder, private chatService: ChatService) {}
 
+  /**
+   * Initializes the chat form and adds a greeting message to the messages array.
+   */
   ngOnInit(): void {
     this.chatForm = this.fb.group({
       provider: ['lm-studio', Validators.required],
@@ -31,6 +34,19 @@ export class AppComponent implements OnInit {
     });
   }
 
+  /**
+   * Sends a message from the user to the chat service and processes the response.
+   *
+   * The function first checks if the chat form is valid. If not, it returns early.
+   * It then extracts the form value, creates a user message, and adds it to the messages array.
+   * A loading message is added to indicate that the AI is processing the request.
+   * The chat form's prompt field is disabled during this time.
+   *
+   * The function subscribes to the chat service's sendMessage method. Upon receiving
+   * a response, it replaces the loading message with the actual response from the AI,
+   * re-enables the prompt field, and resets its value. In case of an error, it replaces
+   * the loading message with an error message and performs similar cleanup actions.
+   */
   sendMessage(): void {
     if (this.chatForm.invalid) return;
 
