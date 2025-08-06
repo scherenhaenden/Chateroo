@@ -12,23 +12,13 @@ const chat_service_1 = require("./chat.service");
 const chat_controller_1 = require("./chat.controller");
 const dummy_engine_1 = require("./ai-engine/dummy.engine");
 const openai_engine_1 = require("./ai-engine/openai.engine");
-const engineProviders = [dummy_engine_1.DummyEngine, openai_engine_1.OpenAiEngine];
 let ChatModule = class ChatModule {
 };
 exports.ChatModule = ChatModule;
 exports.ChatModule = ChatModule = __decorate([
     (0, common_1.Module)({
-        providers: [
-            ...engineProviders,
-            {
-                provide: 'AI_ENGINES',
-                useFactory: (...engines) => engines,
-                inject: engineProviders,
-            },
-            chat_service_1.ChatService,
-        ],
         controllers: [chat_controller_1.ChatController],
-        exports: [chat_service_1.ChatService],
+        providers: [chat_service_1.ChatService, dummy_engine_1.DummyEngine, openai_engine_1.OpenAiEngine],
     })
 ], ChatModule);
 //# sourceMappingURL=chat.module.js.map
