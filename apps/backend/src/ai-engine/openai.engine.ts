@@ -5,6 +5,9 @@ import { AiApiEngine, ChatPayload, ChatResponse } from './ai-api-engine.base';
 export class OpenAiEngine extends AiApiEngine {
   readonly provider = 'openai';
 
+  /**
+   * Sends a message using the provided payload and returns a chat response.
+   */
   async sendMessage(payload: ChatPayload): Promise<ChatResponse> {
     // HINWEIS: Dies ist eine Platzhalter-Implementierung.
     // Hier würde die eigentliche Logik zur Kommunikation mit der OpenAI-API stehen.
