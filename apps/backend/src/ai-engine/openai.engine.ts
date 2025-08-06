@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { AiApiEngine, ChatPayload, ChatResponse } from './ai-api-engine.base';
 
 @Injectable()
