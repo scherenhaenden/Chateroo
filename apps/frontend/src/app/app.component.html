@@ -1,65 +1,109 @@
-<div class="flex flex-col h-screen bg-gray-100 font-sans">
-  <!-- Header -->
-  <header class="bg-white shadow-md p-4 z-10">
-    <h1 class="text-xl font-bold text-gray-800">Chateroo AI Wrapper</h1>
-  </header>
-
-  <!-- Nachrichtenbereich -->
-  <div class="flex-1 p-4 overflow-y-auto space-y-4">
-    <div
-      *ngFor="let msg of messages"
-      [ngClass]="{
-        'self-end bg-blue-100 text-right': msg.sender === 'user',
-        'self-start bg-gray-200 text-left': msg.sender === 'ai'
-      }"
-      class="max-w-xs w-fit rounded-lg p-3"
-    >
-      <ng-container *ngIf="msg.isLoading; else msgText">
-        <div class="flex items-center space-x-2">
-          <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
-          <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-75"></span>
-          <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-150"></span>
-        </div>
-      </ng-container>
-      <ng-template #msgText>{{ msg.text }}</ng-template>
+<div class="flex h-screen bg-gray-200 font-sans">
+  <!-- Sidebar -->
+  <aside class="w-64 bg-gray-800 text-white flex flex-col justify-between">
+    <!-- Top Navigation -->
+    <div>
+      <div class="p-4 border-b border-gray-700">
+        <h1 class="text-xl font-bold">Chateroo</h1>
+      </div>
+      <nav class="flex-1 p-2 space-y-2">
+        <a (click)="setActiveView('chat')" href="#"
+           class="flex items-center px-4 py-2 rounded-md"
+           [ngClass]="activeView === 'chat' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'">
+          <!-- Chat Icon SVG -->
+          <span>Chat</span>
+        </a>
+      </nav>
     </div>
-  </div>
+    <!-- Bottom Navigation -->
+    <nav class="p-2 border-t border-gray-700">
+      <a (click)="setActiveView('settings')" href="#"
+         class="flex items-center px-4 py-2 rounded-md"
+         [ngClass]="activeView === 'settings' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'">
+        <!-- Settings (cog) Icon SVG -->
+        <span>Settings</span>
+      </a>
+    </nav>
+  </aside>
 
-  <!-- Eingabebereich -->
-  <div class="p-4 bg-white border-t border-gray-200">
-    <form
-      [formGroup]="chatForm"
-      (ngSubmit)="sendMessage()"
-      class="flex items-center space-x-4"
-    >
-      <select
-        formControlName="provider"
-        class="p-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="dummy">Dummy</option>
-        <option value="openai">OpenAI</option>
-      </select>
-      <input
-        formControlName="apiKey"
-        *ngIf="chatForm.get('provider')?.value === 'openai'"
-        type="password"
-        placeholder="OpenAI API Key..."
-        class="p-2 border rounded-md flex-shrink w-1/4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      <input
-        formControlName="prompt"
-        type="text"
-        placeholder="Schreibe deine Nachricht..."
-        class="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      <button
-        type="submit"
-        [disabled]="chatForm.invalid || isLoading"
-        class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors"
-      >
-        Senden
-      </button>
-    </form>
-  </div>
+  <!-- Main Content Area -->
+  <main class="flex-1 flex flex-col bg-gray-100">
+
+    <!-- ################# CHAT VIEW ################# -->
+    <ng-container *ngIf="activeView === 'chat'">
+      <!-- Chat messages -->
+      <div class="flex-1 p-6 overflow-y-auto space-y-4">
+        <div
+          *ngFor="let msg of messages"
+          [ngClass]="{
+            'self-end bg-blue-100 text-right': msg.sender === 'user',
+            'self-start bg-gray-200 text-left': msg.sender === 'ai'
+          }"
+          class="max-w-xs w-fit rounded-lg p-3"
+        >
+          <ng-container *ngIf="msg.isLoading; else msgText">
+            <div class="flex items-center space-x-2">
+              <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
+              <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-75"></span>
+              <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-150"></span>
+            </div>
+          </ng-container>
+          <ng-template #msgText>{{ msg.text }}</ng-template>
+        </div>
+      </div>
+      <!-- Input area -->
+      <div class="p-4 bg-white border-t border-gray-200">
+        <form
+          [formGroup]="chatForm"
+          (ngSubmit)="sendMessage()"
+          class="flex items-center space-x-4"
+        >
+          <select
+            formControlName="provider"
+            class="p-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="lm-studio">LM Studio</option>
+            <option value="openai">OpenAI</option>
+          </select>
+          <input
+            formControlName="prompt"
+            type="text"
+            placeholder="Schreibe deine Nachricht..."
+            class="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="submit"
+            [disabled]="chatForm.invalid || isLoading"
+            class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors"
+          >
+            Senden
+          </button>
+        </form>
+      </div>
+    </ng-container>
+
+    <!-- ############## SETTINGS VIEW ############## -->
+    <ng-container *ngIf="activeView === 'settings'">
+      <div class="p-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Settings</h2>
+        <form [formGroup]="settingsForm" (ngSubmit)="saveSettings()"
+              class="space-y-6 bg-white p-6 rounded-lg shadow-md">
+          <div>
+            <label for="openai-key" class="block text-sm font-medium text-gray-700">
+              OpenAI API Key
+            </label>
+            <input id="openai-key" formControlName="openAiApiKey" type="password"
+                   class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div class="flex justify-end">
+            <button type="submit"
+                    class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-300">
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </ng-container>
+
+  </main>
 </div>
-
