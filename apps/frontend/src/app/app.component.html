@@ -1,97 +1,106 @@
+Of course. I see the merge conflict. This happens when changes are made to the same lines in two different branches. The `codex` branch added the settings view and a more complex sidebar, while the `master` branch refined the chat UI.
+
+To resolve this, we need to merge the features from both. The correct approach is to take the overall structure from the `codex` branch (with the two-part sidebar and the `ng-container` for switching views) and combine it with the improved chat message styling and form from the `master` branch.
+
+Here is the complete, resolved code for `app.component.html`. You can replace the entire content of the file with this to fix the conflict.
+
+```html
 <div class="flex h-screen bg-gray-200 font-sans">
   <!-- Sidebar -->
-  <aside class="w-64 bg-gray-800 text-white flex flex-col">
-    <div class="p-4 border-b border-gray-700">
-      <h1 class="text-xl font-bold">Chateroo</h1>
+  <aside class="w-64 bg-gray-800 text-white flex flex-col justify-between">
+    <!-- Top Navigation -->
+    <div>
+      <div class="p-4 border-b border-gray-700">
+        <h1 class="text-xl font-bold">Chateroo</h1>
+      </div>
+      <nav class="flex-1 p-2 space-y-2">
+        <a (click)="setActiveView('chat')" href="#" class="flex items-center px-4 py-2 rounded-md" [ngClass]="activeView === 'chat' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'">
+          <!-- Chat Icon SVG -->
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 mr-3">
+            <path fill-rule="evenodd" d="M4.804 21.644A6.707 6.707 0 0 1 4.5 21.75a.75.75 0 0 1-.743-.898l.68-4.223a.75.75 0 0 1 .224-.492l.001-.002a18.202 18.202 0 0 1 1.83-2.144a15.662 15.662 0 0 0 1.108-1.367c.228-.33.43-1.013.43-1.429V7.5a6.75 6.75 0 0 1 6.75-6.75h.5c.394 0 .783.023 1.168.068a.75.75 0 0 1 .718.826l-.347 4.165a.75.75 0 0 1-.678.649c-.417.034-.833.052-1.251.052h-.5a2.25 2.25 0 0 0-2.25 2.25v2.25a.75.75 0 0 1-1.5 0v-2.25a3.75 3.75 0 0 1 3.75-3.75h.5a15.023 15.023 0 0 1 2.367.241l.24-.24a.75.75 0 0 1 1.06 0l1.83 1.83a.75.75 0 0 1 0 1.06l-2.052 2.052a.75.75 0 0 1-.521.22h-3.37a3.75 3.75 0 0 0-3.75 3.75v1.5a.75.75 0 0 1-1.5 0v-1.5a2.25 2.25 0 0 1 2.25-2.25h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 0-.75.75v3.196a17.398 17.398 0 0 1-2.02 2.446l-.002.002a.75.75 0 0 1-.493.224l-4.223.68a.75.75 0 0 1-.898-.743 6.707 6.707 0 0 1 .144-.306Z" clip-rule="evenodd" />
+            <path d="M16.742 4.127a.75.75 0 0 1 .228 1.034l-2.083 3.644a.75.75 0 0 1-1.262-.72l2.083-3.644a.75.75 0 0 1 1.034-.228Z" />
+          </svg>
+          <span>Chat</span>
+        </a>
+         <a href="#" class="flex items-center px-4 py-2 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 mr-3">
+            <path fill-rule="evenodd" d="M12 3.75a.75.75 0 0 1 .75.75v6.75h6.75a.75.75 0 0 1 0 1.5h-6.75v6.75a.75.75 0 0 1-1.5 0v-6.75H4.5a.75.75 0 0 1 0-1.5h6.75V4.5a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" />
+          </svg>
+          <span>Projects (soon)</span>
+        </a>
+      </nav>
     </div>
-    <nav class="flex-1 p-2 space-y-2">
-      <a href="#" class="flex items-center px-4 py-2 rounded-md bg-gray-700 text-white">
+    <!-- Bottom Navigation -->
+    <nav class="p-2 border-t border-gray-700">
+      <a (click)="setActiveView('settings')" href="#" class="flex items-center px-4 py-2 rounded-md" [ngClass]="activeView === 'settings' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'">
+        <!-- Settings (cog) Icon SVG -->
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 mr-3">
-          <path
-            fill-rule="evenodd"
-            d="M4.804 21.644A6.707 6.707 0 0 1 4.5 21.75a.75.75 0 0 1-.743-.898l.68-4.223a.75.75 0 0 1 .224-.492l.001-.002a18.202 18.202 0 0 1 1.83-2.144a15.662 15.662 0 0 0 1.108-1.367c.228-.33.43-1.013.43-1.429V7.5a6.75 6.75 0 0 1 6.75-6.75h.5c.394 0 .783.023 1.168.068a.75.75 0 0 1 .718.826l-.347 4.165a.75.75 0 0 1-.678.649c-.417.034-.833.052-1.251.052h-.5a2.25 2.25 0 0 0-2.25 2.25v2.25a.75.75 0 0 1-1.5 0v-2.25a3.75 3.75 0 0 1 3.75-3.75h.5a15.023 15.023 0 0 1 2.367.241l.24-.24a.75.75 0 0 1 1.06 0l1.83 1.83a.75.75 0 0 1 0 1.06l-2.052 2.052a.75.75 0 0 1-.521.22h-3.37a3.75 3.75 0 0 0-3.75 3.75v1.5a.75.75 0 0 1-1.5 0v-1.5a2.25 2.25 0 0 1 2.25-2.25h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 0-.75.75v3.196a17.398 17.398 0 0 1-2.02 2.446l-.002.002a.75.75 0 0 1-.493.224l-4.223.68a.75.75 0 0 1-.898-.743 6.707 6.707 0 0 1 .144-.306Z"
-            clip-rule="evenodd"
-          />
-          <path d="M16.742 4.127a.75.75 0 0 1 .228 1.034l-2.083 3.644a.75.75 0 0 1-1.262-.72l2.083-3.644a.75.75 0 0 1 1.034-.228Z" />
+            <path fill-rule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 5.85c-.09.55-.525.951-1.078 1.007L4.85 7.08c-.94.094-1.648.89-1.648 1.852v3.14c0 .962.707 1.758 1.648 1.852l3.122.227c.553.056.988.457 1.078 1.007l.178 2.024c.152.904.933 1.567 1.85 1.567h1.844c.917 0 1.699-.663 1.85-1.567l.178-2.024c.09-.55.525-.951 1.078-1.007l3.122-.227c.94-.094 1.648-.89 1.648-1.852v-3.14c0-.962-.707-1.758-1.648-1.852l-3.122-.227c-.553-.056-.988-.457-1.078-1.007l-.178-2.024A1.99 1.99 0 0 0 14.922 2.25h-1.844a1.99 1.99 0 0 0-1.999 1.999v.001a2.002 2.002 0 0 1-1.078 1.007L4.85 7.081a1.99 1.99 0 0 0-1.648 1.852v3.14c0 .962.707 1.758 1.648 1.852l3.122.227c.553.056.988.457 1.078 1.007l.178 2.024c.152.904.933 1.567 1.85 1.567h1.844c.917 0 1.699-.663 1.85-1.567l.178-2.024c.09-.55.525-.951 1.078-1.007l3.122-.227c.94-.094 1.648-.89 1.648-1.852v-3.14c0-.962-.707-1.758-1.648-1.852l-3.122-.227c-.553-.056-.988-.457-1.078-1.007L13.078 4.25A1.99 1.99 0 0 0 11.078 2.25h-1.844Z" clip-rule="evenodd" />
+            <path fill-rule="evenodd" d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5ZM10.5 12a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z" clip-rule="evenodd" />
         </svg>
-        <span>Chat</span>
-      </a>
-      <a
-        href="#"
-        class="flex items-center px-4 py-2 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 mr-3">
-          <path
-            fill-rule="evenodd"
-            d="M12 3.75a.75.75 0 0 1 .75.75v6.75h6.75a.75.75 0 0 1 0 1.5h-6.75v6.75a.75.75 0 0 1-1.5 0v-6.75H4.5a.75.75 0 0 1 0-1.5h6.75V4.5a.75.75 0 0 1 .75-.75Z"
-            clip-rule="evenodd"
-          />
-        </svg>
-        <span>Projekte (bald)</span>
+        <span>Settings</span>
       </a>
     </nav>
   </aside>
 
-  <!-- Main content -->
-  <div class="flex flex-col flex-1">
-    <!-- Nachrichtenbereich -->
-    <div class="flex-1 p-4 overflow-y-auto space-y-4">
-      <div
-        *ngFor="let msg of messages"
-        [ngClass]="{
-          'self-end bg-blue-100 text-right': msg.sender === 'user',
-          'self-start bg-gray-200 text-left': msg.sender === 'ai'
-        }"
-        class="max-w-xs w-fit rounded-lg p-3"
-      >
-        <ng-container *ngIf="msg.isLoading; else msgText">
-          <div class="flex items-center space-x-2">
-            <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
-            <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-75"></span>
-            <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-150"></span>
+  <!-- Main Content Area -->
+  <main class="flex-1 flex flex-col bg-gray-100">
+
+    <!-- ################# CHAT VIEW ################# -->
+    <ng-container *ngIf="activeView === 'chat'">
+      <!-- Chat messages -->
+       <div class="flex-1 p-6 overflow-y-auto space-y-4">
+        <div *ngFor="let message of messages" class="flex" [ngClass]="{'justify-end': message.sender === 'user', 'justify-start': message.sender === 'ai'}">
+          <div class="max-w-2xl p-3 rounded-lg shadow-md" [ngClass]="{'bg-blue-500 text-white': message.sender === 'user', 'bg-white text-gray-800': message.sender === 'ai'}">
+            <p *ngIf="!message.isLoading" class="whitespace-pre-wrap">{{ message.text }}</p>
+            <div *ngIf="message.isLoading" class="flex items-center space-x-2">
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+            </div>
           </div>
-        </ng-container>
-        <ng-template #msgText>{{ msg.text }}</ng-template>
+        </div>
       </div>
-    </div>
+      <!-- Input area -->
+      <div class="p-4 bg-white border-t border-gray-200">
+        <form [formGroup]="chatForm" (ngSubmit)="sendMessage()" class="flex items-center space-x-4">
+          <select formControlName="provider" class="p-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="dummy">Dummy</option>
+            <option value="lm-studio">LM Studio (Local)</option>
+            <option value="openai">OpenAI</option>
+          </select>
 
-    <!-- Eingabebereich -->
-    <div class="p-4 bg-white border-t border-gray-200">
-      <form
-        [formGroup]="chatForm"
-        (ngSubmit)="sendMessage()"
-        class="flex items-center space-x-4"
-      >
-        <select
-          formControlName="provider"
-          class="p-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="dummy">Dummy</option>
-          <option value="lm-studio">LM Studio (Lokal)</option>
-          <option value="openai">OpenAI</option>
-        </select>
-        <input
-          formControlName="apiKey"
-          *ngIf="chatForm.get('provider')?.value === 'openai'"
-          type="password"
-          placeholder="OpenAI API Key..."
-          class="p-2 border rounded-md flex-shrink w-1/4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          formControlName="prompt"
-          type="text"
-          placeholder="Schreibe deine Nachricht..."
-          class="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          type="submit"
-          [disabled]="chatForm.invalid || isLoading"
-          class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors"
-        >
-          Senden
-        </button>
-      </form>
-    </div>
-  </div>
+          <input formControlName="apiKey" *ngIf="chatForm.get('provider')?.value === 'openai'" type="password" placeholder="OpenAI API Key..." class="p-2 border rounded-md flex-shrink w-1/4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+          <input formControlName="prompt" type="text" placeholder="Type your message..." class="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+          <button type="submit" [disabled]="chatForm.invalid || isLoading" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors">
+            Send
+          </button>
+        </form>
+      </div>
+    </ng-container>
+
+    <!-- ############## SETTINGS VIEW ############## -->
+    <ng-container *ngIf="activeView === 'settings'">
+      <div class="p-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Settings</h2>
+        <form [formGroup]="settingsForm" (ngSubmit)="saveSettings()" class="space-y-6 bg-white p-6 rounded-lg shadow-md max-w-lg">
+          <div>
+            <label for="openai-key" class="block text-sm font-medium text-gray-700">
+              OpenAI API Key
+            </label>
+            <input id="openai-key" formControlName="openAiApiKey" type="password" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div class="flex justify-end">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">
+              Save Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </ng-container>
+
+  </main>
 </div>
-
+```
