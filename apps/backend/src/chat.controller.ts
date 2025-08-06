@@ -14,8 +14,7 @@ export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   /**
-   * Receives a chat message from the frontend, identifies the provider
-   * from the request body, and passes it to the ChatService.
+   * Handles incoming chat messages, identifies the provider, and processes them via ChatService.
    */
   @Post()
   sendMessage(@Body() requestDto: ChatRequestDto): Promise<ChatResponse> {
