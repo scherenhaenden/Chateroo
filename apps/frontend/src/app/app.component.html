@@ -1,0 +1,65 @@
+<div class="flex flex-col h-screen bg-gray-100 font-sans">
+  <!-- Header -->
+  <header class="bg-white shadow-md p-4 z-10">
+    <h1 class="text-xl font-bold text-gray-800">Chateroo AI Wrapper</h1>
+  </header>
+
+  <!-- Nachrichtenbereich -->
+  <div class="flex-1 p-4 overflow-y-auto space-y-4">
+    <div
+      *ngFor="let msg of messages"
+      [ngClass]="{
+        'self-end bg-blue-100 text-right': msg.sender === 'user',
+        'self-start bg-gray-200 text-left': msg.sender === 'ai'
+      }"
+      class="max-w-xs w-fit rounded-lg p-3"
+    >
+      <ng-container *ngIf="msg.isLoading; else msgText">
+        <div class="flex items-center space-x-2">
+          <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
+          <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-75"></span>
+          <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-150"></span>
+        </div>
+      </ng-container>
+      <ng-template #msgText>{{ msg.text }}</ng-template>
+    </div>
+  </div>
+
+  <!-- Eingabebereich -->
+  <div class="p-4 bg-white border-t border-gray-200">
+    <form
+      [formGroup]="chatForm"
+      (ngSubmit)="sendMessage()"
+      class="flex items-center space-x-4"
+    >
+      <select
+        formControlName="provider"
+        class="p-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="dummy">Dummy</option>
+        <option value="openai">OpenAI</option>
+      </select>
+      <input
+        formControlName="apiKey"
+        *ngIf="chatForm.get('provider')?.value === 'openai'"
+        type="password"
+        placeholder="OpenAI API Key..."
+        class="p-2 border rounded-md flex-shrink w-1/4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <input
+        formControlName="prompt"
+        type="text"
+        placeholder="Schreibe deine Nachricht..."
+        class="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <button
+        type="submit"
+        [disabled]="chatForm.invalid || isLoading"
+        class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors"
+      >
+        Senden
+      </button>
+    </form>
+  </div>
+</div>
+
