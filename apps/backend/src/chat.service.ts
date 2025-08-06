@@ -7,6 +7,7 @@ import {
 } from './ai-engine/ai-api-engine.base';
 import { DummyEngine } from './ai-engine/dummy.engine';
 import { OpenAiEngine } from './ai-engine/openai.engine';
+import { LmStudioEngine } from './ai-engine/lm-studio.engine';
 
 @Injectable()
 export class ChatService implements OnModuleInit {
@@ -17,7 +18,7 @@ export class ChatService implements OnModuleInit {
 
   onModuleInit() {
     // Finde alle Provider, die von AiApiEngine erben
-    const engineImplementations = [DummyEngine, OpenAiEngine];
+    const engineImplementations = [DummyEngine, OpenAiEngine, LmStudioEngine];
     engineImplementations.forEach((engineClass) => {
       const engineInstance = this.moduleRef.get(engineClass, { strict: false });
       this.engines.set(engineInstance.provider, engineInstance);
