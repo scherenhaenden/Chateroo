@@ -12,6 +12,18 @@ export class LmStudioEngine extends AiApiEngine {
     super();
   }
 
+  /**
+   * Sends a message to the LM Studio API and returns the response.
+   *
+   * It constructs a request body with a model, user message, and temperature.
+   * It then sends a POST request to the apiUrl using the httpService.
+   * If the response contains valid content, it is returned.
+   * If an error occurs during communication or if no valid content is received, an error message is logged,
+   * and an error response is returned with details about the failure.
+   *
+   * @param payload - An object containing the prompt to be sent.
+   * @returns A Promise that resolves to a ChatResponse containing the LM Studio's response content.
+   */
   async sendMessage(payload: ChatPayload): Promise<ChatResponse> {
     try {
       const requestBody = {
