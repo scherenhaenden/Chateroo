@@ -19,6 +19,9 @@ export class SettingsService {
     this.load(); // Load settings on service initialization.
   }
 
+  /**
+   * Loads the OpenAI API key from storage and sets it in settings if available.
+   */
   async load(): Promise<void> {
     const openAiApiKey = await this.store.get<string>('openAiApiKey');
     if (openAiApiKey) {
@@ -26,6 +29,13 @@ export class SettingsService {
     }
   }
 
+  /**
+   * Updates application settings and reloads the local cache.
+   *
+   * This function iterates over the provided `newSettings` object,
+   * updates each setting in the store, persists the changes to disk,
+   * and then reloads the local settings cache.
+   */
   async save(newSettings: Partial<AppSettings>): Promise<void> {
     // Update each setting provided
     for (const key in newSettings) {
@@ -40,10 +50,16 @@ export class SettingsService {
     await this.load();
   }
 
+  /**
+   * Retrieves the application settings.
+   */
   getSettings(): AppSettings {
     return this.settings;
   }
 
+  /**
+   * Retrieves the API key for the specified provider.
+   */
   getApiKey(provider: 'openai' /* | 'mistral' etc. */): string | null {
     if (provider === 'openai') {
       return this.settings.openAiApiKey;
