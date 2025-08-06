@@ -9,7 +9,7 @@ export class OpenAiEngine extends AiApiEngine {
     // HINWEIS: Dies ist eine Platzhalter-Implementierung.
     // Hier würde die eigentliche Logik zur Kommunikation mit der OpenAI-API stehen.
     if (!payload.apiKey) {
-      return { content: 'Fehler: OpenAI API-Schlüssel fehlt.' };
+      return { content: 'Error: OpenAI API key is missing.' };
     }
     return {
       content: `(Platzhalter) OpenAI würde jetzt die Frage "${payload.prompt}" beantworten.`,
