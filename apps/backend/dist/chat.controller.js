@@ -15,26 +15,31 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatController = void 0;
 const common_1 = require("@nestjs/common");
 const chat_service_1 = require("./chat.service");
+class ChatRequestDto {
+    provider;
+    prompt;
+    apiKey;
+}
 let ChatController = class ChatController {
     chatService;
     constructor(chatService) {
         this.chatService = chatService;
     }
-    async sendMessage(provider, payload) {
-        return this.chatService.sendMessage(provider, payload);
+    sendMessage(requestDto) {
+        const { provider, ...payload } = requestDto;
+        return this.chatService.handleMessage(provider, payload);
     }
 };
 exports.ChatController = ChatController;
 __decorate([
-    (0, common_1.Post)(':provider'),
-    __param(0, (0, common_1.Param)('provider')),
-    __param(1, (0, common_1.Body)()),
+    (0, common_1.Post)(),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [ChatRequestDto]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "sendMessage", null);
 exports.ChatController = ChatController = __decorate([
-    (0, common_1.Controller)('chat'),
+    (0, common_1.Controller)('api/chat'),
     __metadata("design:paramtypes", [chat_service_1.ChatService])
 ], ChatController);
 //# sourceMappingURL=chat.controller.js.map

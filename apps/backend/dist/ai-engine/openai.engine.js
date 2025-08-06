@@ -13,8 +13,9 @@ let OpenAiEngine = class OpenAiEngine extends ai_api_engine_base_1.AiApiEngine {
     provider = 'openai';
     async sendMessage(payload) {
         if (!payload.apiKey) {
-            return { content: 'Error: OpenAI API key is missing.' };
+            return { content: 'Fehler: OpenAI API-Schlüssel fehlt.' };
         }
+        await Promise.resolve();
         return {
             content: `(Platzhalter) OpenAI würde jetzt die Frage "${payload.prompt}" beantworten.`,
         };

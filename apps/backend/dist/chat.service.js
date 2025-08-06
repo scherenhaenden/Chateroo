@@ -8,21 +8,29 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatService = void 0;
 const common_1 = require("@nestjs/common");
+const core_1 = require("@nestjs/core");
+const dummy_engine_1 = require("./ai-engine/dummy.engine");
+const openai_engine_1 = require("./ai-engine/openai.engine");
 let ChatService = class ChatService {
+    moduleRef;
     engines = new Map();
-    constructor(engines) {
-        engines.forEach((engine) => this.engines.set(engine.provider, engine));
+    constructor(moduleRef) {
+        this.moduleRef = moduleRef;
     }
-    async sendMessage(provider, payload) {
+    onModuleInit() {
+        const engineImplementations = [dummy_engine_1.DummyEngine, openai_engine_1.OpenAiEngine];
+        engineImplementations.forEach((engineClass) => {
+            const engineInstance = this.moduleRef.get(engineClass, { strict: false });
+            this.engines.set(engineInstance.provider, engineInstance);
+        });
+    }
+    async handleMessage(provider, payload) {
         const engine = this.engines.get(provider);
         if (!engine) {
-            throw new NotFoundException(`Fehler: Provider '${provider}' nicht unterstützt.`);
+            throw new common_1.NotFoundException(`Provider '${provider}' wird nicht unterstützt.`);
         }
         return engine.sendMessage(payload);
     }
@@ -33,7 +41,6 @@ let ChatService = class ChatService {
 exports.ChatService = ChatService;
 exports.ChatService = ChatService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, common_1.Inject)('AI_ENGINES')),
-    __metadata("design:paramtypes", [Array])
+    __metadata("design:paramtypes", [core_1.ModuleRef])
 ], ChatService);
 //# sourceMappingURL=chat.service.js.map
