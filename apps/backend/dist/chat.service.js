@@ -14,6 +14,7 @@ const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
 const dummy_engine_1 = require("./ai-engine/dummy.engine");
 const openai_engine_1 = require("./ai-engine/openai.engine");
+const lm_studio_engine_1 = require("./ai-engine/lm-studio.engine");
 let ChatService = class ChatService {
     moduleRef;
     engines = new Map();
@@ -21,7 +22,7 @@ let ChatService = class ChatService {
         this.moduleRef = moduleRef;
     }
     onModuleInit() {
-        const engineImplementations = [dummy_engine_1.DummyEngine, openai_engine_1.OpenAiEngine];
+        const engineImplementations = [dummy_engine_1.DummyEngine, openai_engine_1.OpenAiEngine, lm_studio_engine_1.LmStudioEngine];
         engineImplementations.forEach((engineClass) => {
             const engineInstance = this.moduleRef.get(engineClass, { strict: false });
             this.engines.set(engineInstance.provider, engineInstance);
