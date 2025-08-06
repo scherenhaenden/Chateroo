@@ -6,19 +6,20 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AppModule = void 0;
+exports.DummyEngine = void 0;
 const common_1 = require("@nestjs/common");
-const app_controller_1 = require("./app.controller");
-const app_service_1 = require("./app.service");
-const chat_module_1 = require("./chat.module");
-let AppModule = class AppModule {
+const ai_api_engine_base_1 = require("./ai-api-engine.base");
+let DummyEngine = class DummyEngine extends ai_api_engine_base_1.AiApiEngine {
+    provider = 'dummy';
+    async sendMessage(payload) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return {
+            content: `Antwort vom Dummy-Provider für die Frage: "${payload.prompt}"`,
+        };
+    }
 };
-exports.AppModule = AppModule;
-exports.AppModule = AppModule = __decorate([
-    (0, common_1.Module)({
-        imports: [chat_module_1.ChatModule],
-        controllers: [app_controller_1.AppController],
-        providers: [app_service_1.AppService],
-    })
-], AppModule);
-//# sourceMappingURL=app.module.js.map
+exports.DummyEngine = DummyEngine;
+exports.DummyEngine = DummyEngine = __decorate([
+    (0, common_1.Injectable)()
+], DummyEngine);
+//# sourceMappingURL=dummy.engine.js.map
