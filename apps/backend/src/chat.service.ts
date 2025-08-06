@@ -12,7 +12,7 @@ export class ChatService {
   async sendMessage(provider: string, payload: ChatPayload): Promise<ChatResponse> {
     const engine = this.engines.get(provider);
     if (!engine) {
-      return { content: `Fehler: Provider '${provider}' nicht unterstützt.` };
+      throw new NotFoundException(`Fehler: Provider '${provider}' nicht unterstützt.`);
     }
     return engine.sendMessage(payload);
   }
