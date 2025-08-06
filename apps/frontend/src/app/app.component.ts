@@ -18,7 +18,7 @@ export class AppComponent implements OnInit {
   constructor(private fb: FormBuilder, private chatService: ChatService) {}
 
   /**
-   * Initializes the chat form and adds a greeting message to the messages array.
+   * Initializes the chat form with default values and adds a greeting message.
    */
   ngOnInit(): void {
     this.chatForm = this.fb.group({
