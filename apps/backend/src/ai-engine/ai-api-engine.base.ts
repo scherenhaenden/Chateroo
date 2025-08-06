@@ -1,6 +1,7 @@
 export interface ChatPayload {
   prompt: string;
   apiKey?: string;
+  // Zukünftige Optionen wie temperature, model, etc. können hier hinzugefügt werden
 }
 
 export interface ChatResponse {
