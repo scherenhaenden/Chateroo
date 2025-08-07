@@ -33,6 +33,13 @@ export class AppComponent implements OnInit {
 
   /**
    * Initializes the component by loading settings, setting up forms, and displaying a welcome message.
+   *
+   * This function performs several key tasks:
+   * - Loads user settings from persistent storage using `settingsService.load()`.
+   * - Initializes a chat form with fields for provider selection, API key, and prompt input, applying validation rules.
+   * - Sets up a subscription to toggle the API key's required status based on the selected provider.
+   * - Initializes a settings form pre-filled with loaded data from the settings service.
+   * - Adds an initial welcome message to the messages array.
    */
   public async ngOnInit(): Promise<void> {
     // Load settings from persistent storage first
@@ -86,11 +93,9 @@ export class AppComponent implements OnInit {
   }
 
   /**
-   * Sends the user's message to the selected AI provider.
+   * Sends a user's message to the selected AI provider.
    *
-   * This function first checks if the chat form is valid, then retrieves the form value and adds a user message along with a loading indicator to the chat messages. It disables the input field during the process. The API key is fetched from the settings service if the provider is OpenAI. A payload is constructed and sent to the chat service. Upon receiving a response, the loading indicator is replaced with the AI's response, and the form is re-enabled and reset. In case of an error, an error message is displayed in place of the loading indicator.
-   *
-   * @param this - The current context, expected to have `chatForm`, `messages`, `isLoading`, and methods like `settingsService.getApiKey` and `chatService.sendMessage`.
+   * This function validates the chat form, retrieves its value, and adds a user message along with a loading indicator to the chat messages. It disables the input field during processing. The API key is fetched from the settings service if not provided in the form value. A payload is constructed and sent to the chat service. Upon success, the loading indicator is replaced with the AI's response; on error, an error message is displayed.
    */
   public sendMessage(): void {
     if (this.chatForm.invalid) return;
