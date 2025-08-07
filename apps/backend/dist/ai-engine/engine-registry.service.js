@@ -8,29 +8,29 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ChatService = void 0;
+exports.EngineRegistryService = void 0;
 const common_1 = require("@nestjs/common");
-const engine_registry_service_1 = require("./ai-engine/engine-registry.service");
-let ChatService = class ChatService {
-    registry;
-    constructor(registry) {
-        this.registry = registry;
+const ai_engine_constants_1 = require("./ai-engine.constants");
+let EngineRegistryService = class EngineRegistryService {
+    engines = new Map();
+    constructor(engines) {
+        engines.forEach((engine) => this.engines.set(engine.provider, engine));
     }
-    async handleMessage(provider, payload) {
-        const engine = this.registry.get(provider);
-        if (!engine) {
-            throw new common_1.NotFoundException(`Provider '${provider}' wird nicht unterstützt.`);
-        }
-        return engine.sendMessage(payload);
+    get(provider) {
+        return this.engines.get(provider);
     }
     getProviders() {
-        return this.registry.getProviders();
+        return Array.from(this.engines.keys());
     }
 };
-exports.ChatService = ChatService;
-exports.ChatService = ChatService = __decorate([
+exports.EngineRegistryService = EngineRegistryService;
+exports.EngineRegistryService = EngineRegistryService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [engine_registry_service_1.EngineRegistryService])
-], ChatService);
-//# sourceMappingURL=chat.service.js.map
+    __param(0, (0, common_1.Inject)(ai_engine_constants_1.AI_ENGINES)),
+    __metadata("design:paramtypes", [Array])
+], EngineRegistryService);
+//# sourceMappingURL=engine-registry.service.js.map
