@@ -15,23 +15,23 @@ import { ChatMessage } from './models/chat.model';
 })
 export class AppComponent implements OnInit {
   // State Management
-  activeView: 'chat' | 'settings' = 'chat';
-  isLoading = false;
+  public activeView: 'chat' | 'settings' = 'chat';
+  public isLoading = false;
 
   // Reactive Forms
-  chatForm!: FormGroup;
-  settingsForm!: FormGroup;
+  public chatForm!: FormGroup;
+  public settingsForm!: FormGroup;
 
   // Chat Data
-  messages: ChatMessage[] = [];
+  public messages: ChatMessage[] = [];
 
-  constructor(
+  public constructor(
     private fb: FormBuilder,
     private chatService: ChatService,
     private settingsService: SettingsService
   ) {}
 
-  async ngOnInit(): Promise<void> {
+  public async ngOnInit(): Promise<void> {
     // Load settings from persistent storage first
     await this.settingsService.load();
     const currentSettings = this.settingsService.getSettings();
@@ -57,14 +57,14 @@ export class AppComponent implements OnInit {
   /**
    * Switches the main view between 'chat' and 'settings'.
    */
-  setActiveView(view: 'chat' | 'settings'): void {
+  public setActiveView(view: 'chat' | 'settings'): void {
     this.activeView = view;
   }
 
   /**
    * Saves the current values from the settings form to persistent storage.
    */
-  async saveSettings(): Promise<void> {
+  public async saveSettings(): Promise<void> {
     if (this.settingsForm.invalid) return;
     await this.settingsService.save(this.settingsForm.value);
     alert('Settings saved!'); // In a real app, this would be a toast notification
@@ -73,7 +73,7 @@ export class AppComponent implements OnInit {
   /**
    * Sends the user's message to the selected AI provider.
    */
-  sendMessage(): void {
+  public sendMessage(): void {
     if (this.chatForm.invalid) return;
 
     const formValue = this.chatForm.value;

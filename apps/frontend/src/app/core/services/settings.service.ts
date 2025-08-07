@@ -15,18 +15,18 @@ export class SettingsService {
     openAiApiKey: null
   };
 
-  constructor() {
+  public constructor() {
     this.load(); // Load settings on service initialization.
   }
 
-  async load(): Promise<void> {
+  public async load(): Promise<void> {
     const openAiApiKey = await this.store.get<string>('openAiApiKey');
     if (openAiApiKey) {
       this.settings.openAiApiKey = openAiApiKey;
     }
   }
 
-  async save(newSettings: Partial<AppSettings>): Promise<void> {
+  public async save(newSettings: Partial<AppSettings>): Promise<void> {
     // Update each setting provided
     for (const key in newSettings) {
       if (Object.prototype.hasOwnProperty.call(newSettings, key)) {
@@ -40,11 +40,11 @@ export class SettingsService {
     await this.load();
   }
 
-  getSettings(): AppSettings {
+  public getSettings(): AppSettings {
     return this.settings;
   }
 
-  getApiKey(provider: 'openai' /* | 'mistral' etc. */): string | null {
+  public getApiKey(provider: 'openai' /* | 'mistral' etc. */): string | null {
     if (provider === 'openai') {
       return this.settings.openAiApiKey;
     }

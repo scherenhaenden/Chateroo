@@ -14,12 +14,12 @@ export class ChatService implements OnModuleInit {
   private engines: Map<string, AiApiEngine> = new Map();
 
   // ModuleRef wird verwendet, um alle Instanzen von AiApiEngine zu finden
-  constructor(private moduleRef: ModuleRef) {}
+  public constructor(private moduleRef: ModuleRef) {}
 
   /**
    * Initializes AI engines by fetching their instances and storing them.
    */
-  onModuleInit() {
+  public onModuleInit(): void {
     // Finde alle Provider, die von AiApiEngine erben
     const engineImplementations = [DummyEngine, OpenAiEngine, LmStudioEngine];
     engineImplementations.forEach((engineClass) => {
@@ -31,7 +31,7 @@ export class ChatService implements OnModuleInit {
   /**
    * Handles incoming chat messages by selecting an appropriate provider and sending the message.
    */
-  async handleMessage(
+  public async handleMessage(
     provider: string,
     payload: ChatPayload,
   ): Promise<ChatResponse> {
@@ -44,7 +44,7 @@ export class ChatService implements OnModuleInit {
     return engine.sendMessage(payload);
   }
 
-  getProviders(): string[] {
+  public getProviders(): string[] {
     return Array.from(this.engines.keys());
   }
 }
