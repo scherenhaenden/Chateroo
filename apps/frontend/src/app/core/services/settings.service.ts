@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Inject, Injectable, InjectionToken } from '@angular/core';
 import { Store } from 'tauri-plugin-store-api';
 
 export interface AppSettings {
@@ -6,23 +6,24 @@ export interface AppSettings {
   // Future settings can be added here: mistralApiKey, theme, etc.
 }
 
+export const SETTINGS_STORE = new InjectionToken<Store>('SETTINGS_STORE');
+
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SettingsService {
-  private store = new Store('.settings.dat');
   private settings: AppSettings = {
-    openAiApiKey: null
+    openAiApiKey: null,
   };
 
-  constructor() {
-    this.load(); // Load settings on service initialization.
+  public constructor(@Inject(SETTINGS_STORE) private readonly store: Store) {
+    void this.load(); // Load settings on service initialization.
   }
 
   /**
    * Loads the OpenAI API key from storage and sets it in settings if available.
    */
-  async load(): Promise<void> {
+  public async load(): Promise<void> {
     const openAiApiKey = await this.store.get<string>('openAiApiKey');
     if (openAiApiKey) {
       this.settings.openAiApiKey = openAiApiKey;
@@ -36,7 +37,7 @@ export class SettingsService {
    * updates each setting in the store, persists the changes to disk,
    * and then reloads the local settings cache.
    */
-  async save(newSettings: Partial<AppSettings>): Promise<void> {
+  public async save(newSettings: Partial<AppSettings>): Promise<void> {
     // Update each setting provided
     for (const key in newSettings) {
       if (Object.prototype.hasOwnProperty.call(newSettings, key)) {
@@ -53,14 +54,14 @@ export class SettingsService {
   /**
    * Retrieves the application settings.
    */
-  getSettings(): AppSettings {
+  public getSettings(): AppSettings {
     return this.settings;
   }
 
   /**
    * Retrieves the API key for the specified provider.
    */
-  getApiKey(provider: 'openai' /* | 'mistral' etc. */): string | null {
+  public getApiKey(provider: 'openai' /* | 'mistral' etc. */): string | null {
     if (provider === 'openai') {
       return this.settings.openAiApiKey;
     }

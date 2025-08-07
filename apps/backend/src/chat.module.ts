@@ -5,11 +5,29 @@ import { ChatController } from './chat.controller';
 import { DummyEngine } from './ai-engine/dummy.engine';
 import { OpenAiEngine } from './ai-engine/openai.engine';
 import { LmStudioEngine } from './ai-engine/lm-studio.engine';
+import { EngineRegistryService } from './ai-engine/engine-registry.service';
+import { AI_ENGINES } from './ai-engine/ai-engine.constants';
+import { AiApiEngine } from './ai-engine/ai-api-engine.base';
 
 @Module({
   imports: [HttpModule],
   controllers: [ChatController],
   // Registriere alle Engines hier als Provider
-  providers: [ChatService, DummyEngine, OpenAiEngine, LmStudioEngine],
+  providers: [
+    EngineRegistryService,
+    ChatService,
+    DummyEngine,
+    OpenAiEngine,
+    LmStudioEngine,
+    {
+      provide: AI_ENGINES,
+      useFactory: (
+        dummy: DummyEngine,
+        openAi: OpenAiEngine,
+        lmStudio: LmStudioEngine,
+      ): AiApiEngine[] => [dummy, openAi, lmStudio],
+      inject: [DummyEngine, OpenAiEngine, LmStudioEngine],
+    },
+  ],
 })
 export class ChatModule {}

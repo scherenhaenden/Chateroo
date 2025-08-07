@@ -3,7 +3,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { CommonModule } from '@angular/common';
 
 // App Services and Models
-import { ChatService, SendMessagePayload } from './core/services/chat.service';
+import { ChatService, SendMessagePayload, ChatApiResponse } from './core/services/chat.service';
 import { SettingsService } from './core/services/settings.service';
 import { ChatMessage } from './models/chat.model';
 
@@ -15,26 +15,26 @@ import { ChatMessage } from './models/chat.model';
 })
 export class AppComponent implements OnInit {
   // State Management
-  activeView: 'chat' | 'settings' = 'chat';
-  isLoading = false;
+  public activeView: 'chat' | 'settings' = 'chat';
+  public isLoading = false;
 
   // Reactive Forms
-  chatForm!: FormGroup;
-  settingsForm!: FormGroup;
+  public chatForm!: FormGroup;
+  public settingsForm!: FormGroup;
 
   // Chat Data
-  messages: ChatMessage[] = [];
+  public messages: ChatMessage[] = [];
 
-  constructor(
+  public constructor(
     private fb: FormBuilder,
     private chatService: ChatService,
-    private settingsService: SettingsService
+    private settingsService: SettingsService,
   ) {}
 
   /**
    * Initializes the component by loading settings, setting up forms, and displaying a welcome message.
    */
-  async ngOnInit(): Promise<void> {
+  public async ngOnInit(): Promise<void> {
     // Load settings from persistent storage first
     await this.settingsService.load();
     const currentSettings = this.settingsService.getSettings();
@@ -60,14 +60,14 @@ export class AppComponent implements OnInit {
   /**
    * Sets the active view to either 'chat' or 'settings'.
    */
-  setActiveView(view: 'chat' | 'settings'): void {
+  public setActiveView(view: 'chat' | 'settings'): void {
     this.activeView = view;
   }
 
   /**
    * Saves valid settings from the form to persistent storage and alerts the user.
    */
-  async saveSettings(): Promise<void> {
+  public async saveSettings(): Promise<void> {
     if (this.settingsForm.invalid) return;
     await this.settingsService.save(this.settingsForm.value);
     alert('Settings saved!'); // In a real app, this would be a toast notification
@@ -80,43 +80,54 @@ export class AppComponent implements OnInit {
    *
    * @param this - The current context, expected to have `chatForm`, `messages`, `isLoading`, and methods like `settingsService.getApiKey` and `chatService.sendMessage`.
    */
-  sendMessage(): void {
+  public sendMessage(): void {
     if (this.chatForm.invalid) return;
 
     const formValue = this.chatForm.value;
+    this.addUserAndLoadingMessages(formValue.prompt);
+    this.togglePrompt(false);
 
-    // Add user message and a loading indicator to the chat
-    this.messages.push({ sender: 'user', text: formValue.prompt });
-    this.messages.push({ sender: 'ai', text: '', isLoading: true });
-
-    this.isLoading = true;
-    this.chatForm.get('prompt')?.disable();
-
-    // Retrieve the API key from settings if the provider is OpenAI
     const apiKey = this.settingsService.getApiKey(formValue.provider);
-
     const payload: SendMessagePayload = {
       provider: formValue.provider,
       prompt: formValue.prompt,
-      apiKey: apiKey || undefined, // Only send the key if it exists
+      apiKey: apiKey || undefined,
     };
 
     this.chatService.sendMessage(payload).subscribe({
-      next: (res) => {
-        // Replace loading message with the actual AI response
-        const lastIndex = this.messages.length - 1;
-        this.messages[lastIndex] = { sender: 'ai', text: res.content };
-        this.isLoading = false;
-        this.chatForm.get('prompt')?.enable();
-        this.chatForm.get('prompt')?.reset();
-      },
-      error: (err) => {
-        const errorMessage = `Error: ${err.error?.message || 'Failed to communicate with the backend.'}`;
-        const lastIndex = this.messages.length - 1;
-        this.messages[lastIndex] = { sender: 'ai', text: errorMessage };
-        this.isLoading = false;
-        this.chatForm.get('prompt')?.enable();
-      },
+      next: (res) => this.handleSuccess(res),
+      error: (err) => this.handleError(err),
     });
+  }
+
+  private addUserAndLoadingMessages(prompt: string): void {
+    this.messages.push({ sender: 'user', text: prompt });
+    this.messages.push({ sender: 'ai', text: '', isLoading: true });
+    this.isLoading = true;
+  }
+
+  private togglePrompt(enable: boolean): void {
+    const control = this.chatForm.get('prompt');
+    if (enable) {
+      control?.enable();
+      control?.reset();
+    } else {
+      control?.disable();
+    }
+  }
+
+  private handleSuccess(res: ChatApiResponse): void {
+    const lastIndex = this.messages.length - 1;
+    this.messages[lastIndex] = { sender: 'ai', text: res.content };
+    this.isLoading = false;
+    this.togglePrompt(true);
+  }
+
+  private handleError(err: any): void {
+    const errorMessage = `Error: ${err.error?.message || 'Failed to communicate with the backend.'}`;
+    const lastIndex = this.messages.length - 1;
+    this.messages[lastIndex] = { sender: 'ai', text: errorMessage };
+    this.isLoading = false;
+    this.togglePrompt(true);
   }
 }
