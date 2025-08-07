@@ -19,9 +19,7 @@ export class ChatService {
   public constructor(private http: HttpClient) {}
 
   /**
-   * Sends a message to the backend which forwards it to the selected provider.
-   *
-   * @param payload - The message payload containing details like prompt and provider.
+   * Sends a message to the backend via HTTP POST.
    */
   public sendMessage(payload: SendMessagePayload): Observable<ChatApiResponse> {
     return this.http.post<ChatApiResponse>(this.apiUrl, payload);
