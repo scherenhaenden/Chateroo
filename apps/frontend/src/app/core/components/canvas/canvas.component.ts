@@ -14,16 +14,25 @@ export class CanvasComponent implements AfterViewInit {
   private canvas!: fabric.Canvas;
   public isDrawingMode = true;
 
+  /**
+   * Initializes the canvas after the view has been initialized.
+   */
   ngAfterViewInit(): void {
     this.initializeCanvas();
   }
 
   // Listen for window resize events to keep the canvas responsive
+  /**
+   * Handles window resize events by resizing the canvas.
+   */
   @HostListener('window:resize', ['$event'])
   onResize(_event: Event): void {
     this.resizeCanvas();
   }
 
+  /**
+   * Initializes the Fabric.js canvas with specified configurations and sets up drawing settings.
+   */
   private initializeCanvas(): void {
     // Create a new Fabric.js canvas
     this.canvas = new fabric.Canvas('chaterooCanvas', {
@@ -40,6 +49,9 @@ export class CanvasComponent implements AfterViewInit {
     this.resizeCanvas();
   }
 
+  /**
+   * Resizes the canvas to match the dimensions of its container.
+   */
   private resizeCanvas(): void {
     const container = this.canvasContainer.nativeElement;
     const width = container.offsetWidth;
@@ -50,11 +62,17 @@ export class CanvasComponent implements AfterViewInit {
 
   // --- Public Methods for UI Controls ---
 
+  /**
+   * Toggles the drawing mode on the canvas.
+   */
   public toggleDrawingMode(): void {
     this.isDrawingMode = !this.isDrawingMode;
     this.canvas.isDrawingMode = this.isDrawingMode;
   }
 
+  /**
+   * Clears the canvas and re-applies the background color.
+   */
   public clearCanvas(): void {
     this.canvas.clear();
     // Re-add the background color after clearing
@@ -62,10 +80,16 @@ export class CanvasComponent implements AfterViewInit {
     this.canvas.renderAll();
   }
 
+  /**
+   * Sets the brush color for free drawing on the canvas.
+   */
   public setBrushColor(color: string): void {
     this.canvas.freeDrawingBrush!.color = color;
   }
 
+  /**
+   * Sets the brush width for drawing on the canvas.
+   */
   public setBrushWidth(width: number): void {
     this.canvas.freeDrawingBrush!.width = width;
   }
