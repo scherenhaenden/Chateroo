@@ -38,10 +38,17 @@ export class ChatComponent implements OnInit {
     });
   }
 
+  /**
+   * Checks if the given provider requires an API key.
+   */
   public requiresApiKey(provider: string | null | undefined): boolean {
     return provider ? this.providersWithApiKey.includes(provider) : false;
   }
 
+  /**
+   * Initializes the component by loading settings, setting up form validators,
+   * and pushing an initial message to the chat messages array.
+   */
   public async ngOnInit(): Promise<void> {
     await this.settingsService.load();
 
@@ -61,6 +68,16 @@ export class ChatComponent implements OnInit {
     });
   }
 
+  /**
+   * Sends a message to the chat service with the provided form values.
+   *
+   * This function first checks if the chat form is valid. If it's invalid, the function returns immediately.
+   * It then retrieves the form values and adds user and loading messages.
+   * The prompt visibility is toggled off after sending the message.
+   * An API key is determined either from the form value or fetched from the settings service based on the provider.
+   * A payload object is created with the necessary details and sent to the chat service.
+   * Success and error handlers are defined for the service response.
+   */
   public sendMessage(): void {
     if (this.chatForm.invalid) return;
 
@@ -81,12 +98,21 @@ export class ChatComponent implements OnInit {
     });
   }
 
+  /**
+   * Adds a user message and an AI loading message to the messages array and sets isLoading to true.
+   */
   private addUserAndLoadingMessages(prompt: string): void {
     this.messages.push({ sender: 'user', text: prompt });
     this.messages.push({ sender: 'ai', text: '', isLoading: true });
     this.isLoading = true;
   }
 
+  /**
+   * Toggles the 'prompt' field in the chat form based on the enable flag.
+   *
+   * This function checks if the 'prompt' field is present in the chat form.
+   * If enabled, it enables the field and resets its value. If disabled, it simply disables the field.
+   */
   private togglePrompt(enable: boolean): void {
     const control = this.chatForm.get('prompt');
     if (enable) {
@@ -97,6 +123,9 @@ export class ChatComponent implements OnInit {
     }
   }
 
+  /**
+   * Handles a successful API response by updating the last message and UI state.
+   */
   private handleSuccess(res: ChatApiResponse): void {
     const lastIndex = this.messages.length - 1;
     this.messages[lastIndex] = { sender: 'ai', text: res.content };
@@ -104,6 +133,9 @@ export class ChatComponent implements OnInit {
     this.togglePrompt(true);
   }
 
+  /**
+   * Handles errors by updating the messages array with an error message and resetting loading state.
+   */
   private handleError(err: any): void {
     const errorMessage = `Error: ${err.error?.message || 'Failed to communicate with the backend.'}`;
     const lastIndex = this.messages.length - 1;
