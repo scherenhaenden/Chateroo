@@ -14,6 +14,12 @@ export class GrokEngine extends AiApiEngine {
 
   /**
    * Sends a message to the Grok API and returns the response.
+   *
+   * It constructs the request headers and body, sends a POST request using the HTTP service,
+   * and processes the response. If an error occurs, it logs the error and returns a default error message.
+   *
+   * @param payload - An object containing the API key and prompt for the message.
+   * @returns A promise that resolves to a ChatResponse object containing the response content.
    */
   public async sendMessage(payload: ChatPayload): Promise<ChatResponse> {
     const headers = {
