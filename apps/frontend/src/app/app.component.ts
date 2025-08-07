@@ -7,5 +7,7 @@ import { LayoutComponent } from './core/components/layout/layout.component';
   imports: [LayoutComponent],
   template: `<app-layout></app-layout>`,
 })
+
 export class AppComponent {}
+
 
