@@ -42,7 +42,19 @@ export class AppComponent implements OnInit {
     // Initialize the chat form
     this.chatForm = this.fb.group({
       provider: ['lm-studio', Validators.required],
+      apiKey: [''],
       prompt: ['', Validators.required],
+    });
+
+    // Toggle API key requirement based on selected provider
+    this.chatForm.get('provider')?.valueChanges.subscribe((provider) => {
+      const apiKeyControl = this.chatForm.get('apiKey');
+      if (provider === 'openai') {
+        apiKeyControl?.setValidators([Validators.required]);
+      } else {
+        apiKeyControl?.clearValidators();
+      }
+      apiKeyControl?.updateValueAndValidity();
     });
 
     // Initialize the settings form with loaded data
@@ -87,7 +99,7 @@ export class AppComponent implements OnInit {
     this.addUserAndLoadingMessages(formValue.prompt);
     this.togglePrompt(false);
 
-    const apiKey = this.settingsService.getApiKey(formValue.provider);
+    const apiKey = formValue.apiKey || this.settingsService.getApiKey(formValue.provider);
     const payload: SendMessagePayload = {
       provider: formValue.provider,
       prompt: formValue.prompt,

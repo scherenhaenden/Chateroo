@@ -1,6 +1,15 @@
 {
   "name": "ai-chat-wrapper",
   "version": "1.0.0",
+  "type": "commonjs",
+  "description": "A workspace for AI chat wrapper applications",
+  "keywords": [
+    "ai",
+    "chat",
+    "wrapper"
+  ],
+  "author": "scherenhaenden <scherenhaenden@gmail.com>",
+  "license": "UNLICENSED",
   "private": true,
   "workspaces": [
     "apps/*"
