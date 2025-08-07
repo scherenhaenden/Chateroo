@@ -38,7 +38,18 @@ export class AppComponent implements OnInit {
     private fb: FormBuilder,
     private chatService: ChatService,
     private settingsService: SettingsService,
-  ) {}
+  ) {
+    // Initialize forms immediately in constructor
+    this.chatForm = this.fb.group({
+      provider: ['lm-studio', Validators.required],
+      apiKey: [''],
+      prompt: ['', Validators.required],
+    });
+
+    this.settingsForm = this.fb.group({
+      openAiApiKey: [''],
+    });
+  }
 
   public requiresApiKey(provider: string | null | undefined): boolean {
     return provider ? this.providersWithApiKey.includes(provider) : false;
@@ -56,18 +67,16 @@ export class AppComponent implements OnInit {
    * 4. Adds a welcome message to the messages array.
    */
   public async ngOnInit(): Promise<void> {
-    // Load settings from persistent storage first
+    // Load settings and update forms
     await this.settingsService.load();
     const currentSettings = this.settingsService.getSettings();
 
-    // Initialize the chat form
-    this.chatForm = this.fb.group({
-      provider: ['lm-studio', Validators.required],
-      apiKey: [''],
-      prompt: ['', Validators.required],
+    // Update settings form with loaded data
+    this.settingsForm.patchValue({
+      openAiApiKey: currentSettings.openAiApiKey || ''
     });
 
-    // Toggle API key requirement based on selected provider
+    // Set up dynamic validation for API key
     this.chatForm.get('provider')?.valueChanges.subscribe((provider) => {
       const apiKeyControl = this.chatForm.get('apiKey');
       if (this.providersWithApiKey.includes(provider)) {
@@ -78,12 +87,7 @@ export class AppComponent implements OnInit {
       apiKeyControl?.updateValueAndValidity();
     });
 
-    // Initialize the settings form with loaded data
-    this.settingsForm = this.fb.group({
-      openAiApiKey: [currentSettings.openAiApiKey || ''],
-    });
-
-    // Display a welcome message
+    // Display welcome message
     this.messages.push({
       sender: 'ai',
       text: 'Welcome! Select a provider and ask a question.',
