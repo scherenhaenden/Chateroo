@@ -14,6 +14,13 @@ export class GeminiEngine extends AiApiEngine {
 
   /**
    * Sends a message to the Gemini API and returns the response.
+   *
+   * It constructs the request headers and body, sends a POST request to the specified API URL,
+   * and processes the response. If the response is invalid or an error occurs during communication,
+   * it logs the error and returns a default error message.
+   *
+   * @param payload - An object containing the apiKey and prompt for the Gemini API request.
+   * @returns A promise that resolves to a ChatResponse object containing the response content.
    */
   public async sendMessage(payload: ChatPayload): Promise<ChatResponse> {
     const headers = {

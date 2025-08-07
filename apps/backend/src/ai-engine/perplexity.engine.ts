@@ -14,6 +14,12 @@ export class PerplexityEngine extends AiApiEngine {
 
   /**
    * Sends a message to the Perplexity API and returns the response.
+   *
+   * It constructs the request headers and body, sends the POST request using the HTTP service,
+   * processes the response to extract the content, and handles any errors that occur during communication.
+   *
+   * @param payload - An object containing the apiKey and prompt for the chat message.
+   * @returns A promise resolving to an object with the content of the API response.
    */
   public async sendMessage(payload: ChatPayload): Promise<ChatResponse> {
     const headers = {
