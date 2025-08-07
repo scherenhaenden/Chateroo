@@ -84,9 +84,8 @@ export class ChatComponent implements OnInit {
   }
 
   /**
-   * Parses a markdown string into sanitized HTML.
+   * Converts markdown text to sanitized HTML.
    * @param text The raw markdown text from the LLM.
-   * @returns A string containing safe HTML to be rendered.
    */
   public renderMarkdown(text: string): string {
     const rawHtml = marked.parse(text);
@@ -94,6 +93,9 @@ export class ChatComponent implements OnInit {
     return sanitizedHtml;
   }
 
+  /**
+   * Adds a user message and an AI loading message to the messages array and sets isLoading to true.
+   */
   private addUserAndLoadingMessages(prompt: string): void {
     this.messages.push({ sender: 'user', text: prompt });
     this.messages.push({ sender: 'ai', text: '', isLoading: true });
