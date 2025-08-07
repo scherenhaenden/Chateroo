@@ -14,6 +14,13 @@ export class MistralEngine extends AiApiEngine {
 
   /**
    * Sends a message to the Mistral API and returns the response.
+   *
+   * Constructs the request headers and body, sends a POST request to the Mistral API,
+   * and processes the response. If the response is invalid or an error occurs during
+   * communication, it logs the error and returns a default error message.
+   *
+   * @param payload - An object containing the API key and prompt for the message.
+   * @returns A promise that resolves to a ChatResponse object containing the response content.
    */
   public async sendMessage(payload: ChatPayload): Promise<ChatResponse> {
     const headers = {
