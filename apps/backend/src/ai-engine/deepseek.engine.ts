@@ -14,6 +14,13 @@ export class DeepseekEngine extends AiApiEngine {
 
   /**
    * Sends a message to the Deepseek API and returns the response.
+   *
+   * Constructs headers with authorization, prepares the request body,
+   * sends the POST request using HttpService, processes the response,
+   * and handles any errors by logging them and returning an error message.
+   *
+   * @param payload - An object containing the apiKey and prompt for the message.
+   * @returns A Promise that resolves to a ChatResponse containing the content of the API response.
    */
   public async sendMessage(payload: ChatPayload): Promise<ChatResponse> {
     const headers = {
