@@ -5,6 +5,8 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { ChatService, SendMessagePayload, ChatApiResponse } from '../../services/chat.service';
 import { SettingsService } from '../../services/settings.service';
 import { ChatMessage } from '../../../models/chat.model';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 @Component({
   selector: 'app-chat',
@@ -79,6 +81,17 @@ export class ChatComponent implements OnInit {
       next: (res) => this.handleSuccess(res),
       error: (err) => this.handleError(err),
     });
+  }
+
+  /**
+   * Parses a markdown string into sanitized HTML.
+   * @param text The raw markdown text from the LLM.
+   * @returns A string containing safe HTML to be rendered.
+   */
+  public renderMarkdown(text: string): string {
+    const rawHtml = marked.parse(text);
+    const sanitizedHtml = DOMPurify.sanitize(rawHtml as string);
+    return sanitizedHtml;
   }
 
   private addUserAndLoadingMessages(prompt: string): void {

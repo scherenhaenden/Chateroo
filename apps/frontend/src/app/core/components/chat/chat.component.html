@@ -1,7 +1,7 @@
 <div class="flex-1 p-6 overflow-y-auto space-y-4">
   <div *ngFor="let message of messages" class="flex" [ngClass]="{'justify-end': message.sender === 'user', 'justify-start': message.sender === 'ai'}">
     <div class="max-w-2xl p-3 rounded-lg shadow-md" [ngClass]="{'bg-blue-500 text-white': message.sender === 'user', 'bg-white text-gray-800': message.sender === 'ai'}">
-      <p *ngIf="!message.isLoading" class="whitespace-pre-wrap">{{ message.text }}</p>
+      <div *ngIf="!message.isLoading" class="markdown-content" [innerHTML]="renderMarkdown(message.text)"></div>
       <div *ngIf="message.isLoading" class="flex items-center space-x-2">
           <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
           <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
