@@ -61,9 +61,8 @@ export class AppComponent implements OnInit {
    *
    * The function performs the following steps:
    * 1. Loads settings from persistent storage using `settingsService`.
-   * 2. Initializes a chat form with required fields and sets up dynamic validation for the API key
-   *    based on the selected provider.
-   * 3. Initializes a settings form with data from the loaded settings.
+   * 2. Updates the settings form with data from the loaded settings.
+   * 3. Sets up dynamic validation for the API key based on the selected provider in the chat form.
    * 4. Adds a welcome message to the messages array.
    */
   public async ngOnInit(): Promise<void> {
