@@ -10,10 +10,16 @@ export class EngineRegistryService {
     engines.forEach((engine) => this.engines.set(engine.provider, engine));
   }
 
+  /**
+   * Retrieves an AI API engine by provider name.
+   */
   public get(provider: string): AiApiEngine | undefined {
     return this.engines.get(provider);
   }
 
+  /**
+   * Returns an array of provider keys.
+   */
   public getProviders(): string[] {
     return Array.from(this.engines.keys());
   }
