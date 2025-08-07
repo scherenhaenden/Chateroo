@@ -5,6 +5,11 @@ import { ChatController } from './chat.controller';
 import { DummyEngine } from './ai-engine/dummy.engine';
 import { OpenAiEngine } from './ai-engine/openai.engine';
 import { LmStudioEngine } from './ai-engine/lm-studio.engine';
+import { MistralEngine } from './ai-engine/mistral.engine';
+import { GeminiEngine } from './ai-engine/gemini.engine';
+import { PerplexityEngine } from './ai-engine/perplexity.engine';
+import { GrokEngine } from './ai-engine/grok.engine';
+import { DeepseekEngine } from './ai-engine/deepseek.engine';
 import { EngineRegistryService } from './ai-engine/engine-registry.service';
 import { AI_ENGINES } from './ai-engine/ai-engine.constants';
 import { AiApiEngine } from './ai-engine/ai-api-engine.base';
@@ -19,14 +24,42 @@ import { AiApiEngine } from './ai-engine/ai-api-engine.base';
     DummyEngine,
     OpenAiEngine,
     LmStudioEngine,
+    MistralEngine,
+    GeminiEngine,
+    PerplexityEngine,
+    GrokEngine,
+    DeepseekEngine,
     {
       provide: AI_ENGINES,
       useFactory: (
         dummy: DummyEngine,
         openAi: OpenAiEngine,
         lmStudio: LmStudioEngine,
-      ): AiApiEngine[] => [dummy, openAi, lmStudio],
-      inject: [DummyEngine, OpenAiEngine, LmStudioEngine],
+        mistral: MistralEngine,
+        gemini: GeminiEngine,
+        perplexity: PerplexityEngine,
+        grok: GrokEngine,
+        deepseek: DeepseekEngine,
+      ): AiApiEngine[] => [
+        dummy,
+        openAi,
+        lmStudio,
+        mistral,
+        gemini,
+        perplexity,
+        grok,
+        deepseek,
+      ],
+      inject: [
+        DummyEngine,
+        OpenAiEngine,
+        LmStudioEngine,
+        MistralEngine,
+        GeminiEngine,
+        PerplexityEngine,
+        GrokEngine,
+        DeepseekEngine,
+      ],
     },
   ],
 })
