@@ -14,6 +14,11 @@ const chat_controller_1 = require("./chat.controller");
 const dummy_engine_1 = require("./ai-engine/dummy.engine");
 const openai_engine_1 = require("./ai-engine/openai.engine");
 const lm_studio_engine_1 = require("./ai-engine/lm-studio.engine");
+const mistral_engine_1 = require("./ai-engine/mistral.engine");
+const gemini_engine_1 = require("./ai-engine/gemini.engine");
+const perplexity_engine_1 = require("./ai-engine/perplexity.engine");
+const grok_engine_1 = require("./ai-engine/grok.engine");
+const deepseek_engine_1 = require("./ai-engine/deepseek.engine");
 const engine_registry_service_1 = require("./ai-engine/engine-registry.service");
 const ai_engine_constants_1 = require("./ai-engine/ai-engine.constants");
 let ChatModule = class ChatModule {
@@ -29,10 +34,33 @@ exports.ChatModule = ChatModule = __decorate([
             dummy_engine_1.DummyEngine,
             openai_engine_1.OpenAiEngine,
             lm_studio_engine_1.LmStudioEngine,
+            mistral_engine_1.MistralEngine,
+            gemini_engine_1.GeminiEngine,
+            perplexity_engine_1.PerplexityEngine,
+            grok_engine_1.GrokEngine,
+            deepseek_engine_1.DeepseekEngine,
             {
                 provide: ai_engine_constants_1.AI_ENGINES,
-                useFactory: (dummy, openAi, lmStudio) => [dummy, openAi, lmStudio],
-                inject: [dummy_engine_1.DummyEngine, openai_engine_1.OpenAiEngine, lm_studio_engine_1.LmStudioEngine],
+                useFactory: (dummy, openAi, lmStudio, mistral, gemini, perplexity, grok, deepseek) => [
+                    dummy,
+                    openAi,
+                    lmStudio,
+                    mistral,
+                    gemini,
+                    perplexity,
+                    grok,
+                    deepseek,
+                ],
+                inject: [
+                    dummy_engine_1.DummyEngine,
+                    openai_engine_1.OpenAiEngine,
+                    lm_studio_engine_1.LmStudioEngine,
+                    mistral_engine_1.MistralEngine,
+                    gemini_engine_1.GeminiEngine,
+                    perplexity_engine_1.PerplexityEngine,
+                    grok_engine_1.GrokEngine,
+                    deepseek_engine_1.DeepseekEngine,
+                ],
             },
         ],
     })
