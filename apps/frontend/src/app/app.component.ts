@@ -25,11 +25,24 @@ export class AppComponent implements OnInit {
   // Chat Data
   public messages: ChatMessage[] = [];
 
+  private readonly providersWithApiKey = [
+    'openai',
+    'mistral',
+    'gemini',
+    'perplexity',
+    'grok',
+    'deepseek',
+  ];
+
   public constructor(
     private fb: FormBuilder,
     private chatService: ChatService,
     private settingsService: SettingsService,
   ) {}
+
+  public requiresApiKey(provider: string | null | undefined): boolean {
+    return provider ? this.providersWithApiKey.includes(provider) : false;
+  }
 
   /**
    * Initializes the component by loading settings, setting up forms with validation,
@@ -57,7 +70,7 @@ export class AppComponent implements OnInit {
     // Toggle API key requirement based on selected provider
     this.chatForm.get('provider')?.valueChanges.subscribe((provider) => {
       const apiKeyControl = this.chatForm.get('apiKey');
-      if (provider === 'openai') {
+      if (this.providersWithApiKey.includes(provider)) {
         apiKeyControl?.setValidators([Validators.required]);
       } else {
         apiKeyControl?.clearValidators();
