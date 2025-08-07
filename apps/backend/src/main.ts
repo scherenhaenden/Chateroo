@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 /**
- * Initializes and starts the NestJS application.
+ * Initializes and starts the NestJS application with CORS enabled.
  */
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
