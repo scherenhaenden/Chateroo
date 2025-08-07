@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { CanvasComponent } from './core/components/canvas/canvas.component';
 
 // App Services and Models
 import { ChatService, SendMessagePayload, ChatApiResponse } from './core/services/chat.service';
@@ -10,12 +11,12 @@ import { ChatMessage } from './models/chat.model';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CanvasComponent],
   templateUrl: './app.component.html',
 })
 export class AppComponent implements OnInit {
   // State Management
-  public activeView: 'chat' | 'settings' = 'chat';
+  public activeView: 'chat' | 'settings' | 'canvas' = 'chat';
   public isLoading = false;
 
   // Reactive Forms
@@ -96,7 +97,7 @@ export class AppComponent implements OnInit {
   /**
    * Sets the active view to either 'chat' or 'settings'.
    */
-  public setActiveView(view: 'chat' | 'settings'): void {
+  public setActiveView(view: 'chat' | 'settings' | 'canvas'): void {
     this.activeView = view;
   }
 

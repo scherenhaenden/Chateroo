@@ -15,7 +15,13 @@
           </svg>
           <span>Chat</span>
         </a>
-         <a href="#" class="flex items-center px-4 py-2 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white">
+        <a (click)="setActiveView('canvas')" href="#" class="flex items-center px-4 py-2 rounded-md" [ngClass]="activeView === 'canvas' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 mr-3">
+            <path d="M14.063 3.336c.737 0 1.337.6 1.337 1.337v2.674H8.6V4.673c0-.737.6-1.337 1.337-1.337h4.126ZM15.4 8.684V4.673c0-1.474-1.2-2.674-2.674-2.674H9.937c-1.474 0-2.674 1.2-2.674 2.674v4.011H4.5c-.825 0-1.5.675-1.5 1.5v6.75c0 .825.675 1.5 1.5 1.5h15c.825 0 1.5-.675 1.5-1.5v-6.75c0-.825-.675-1.5-1.5-1.5h-2.763Z" />
+          </svg>
+          <span>Canvas</span>
+        </a>
+        <a href="#" class="flex items-center px-4 py-2 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 mr-3">
             <path fill-rule="evenodd" d="M12 3.75a.75.75 0 0 1 .75.75v6.75h6.75a.75.75 0 0 1 0 1.5h-6.75v6.75a.75.75 0 0 1-1.5 0v-6.75H4.5a.75.75 0 0 1 0-1.5h6.75V4.5a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" />
           </svg>
@@ -79,6 +85,10 @@
           </button>
         </form>
       </div>
+    </ng-container>
+
+    <ng-container *ngIf="activeView === 'canvas'">
+      <app-canvas class="h-full w-full"></app-canvas>
     </ng-container>
 
     <!-- ############## SETTINGS VIEW ############## -->
