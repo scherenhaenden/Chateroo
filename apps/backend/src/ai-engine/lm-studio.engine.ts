@@ -5,10 +5,10 @@ import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class LmStudioEngine extends AiApiEngine {
-  readonly provider = 'lm-studio';
+  public readonly provider = 'lm-studio';
   private readonly apiUrl = 'http://localhost:1234/v1/chat/completions';
 
-  constructor(private readonly httpService: HttpService) {
+  public constructor(private readonly httpService: HttpService) {
     super();
   }
 
@@ -24,7 +24,7 @@ export class LmStudioEngine extends AiApiEngine {
    * @param payload - An object containing the prompt to be sent.
    * @returns A Promise that resolves to a ChatResponse containing the LM Studio's response content.
    */
-  async sendMessage(payload: ChatPayload): Promise<ChatResponse> {
+  public async sendMessage(payload: ChatPayload): Promise<ChatResponse> {
     try {
       const requestBody = {
         model: 'local-model',

@@ -9,9 +9,9 @@ export interface ChatResponse {
 }
 
 export abstract class AiApiEngine {
-  abstract readonly provider: string;
+  public abstract readonly provider: string;
   /**
    * Sends a chat message with the provided payload and returns a promise resolving to the chat response.
    */
-  abstract sendMessage(payload: ChatPayload): Promise<ChatResponse>;
+  public abstract sendMessage(payload: ChatPayload): Promise<ChatResponse>;
 }

@@ -5,7 +5,7 @@ export class AppService {
   /**
    * Returns a greeting message.
    */
-  getHello(): string {
+  public getHello(): string {
     return 'Hello World!';
   }
 }
