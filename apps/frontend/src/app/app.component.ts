@@ -95,7 +95,7 @@ export class AppComponent implements OnInit {
   }
 
   /**
-   * Sets the active view to either 'chat' or 'settings'.
+   * Sets the active view to either 'chat', 'settings', or 'canvas'.
    */
   public setActiveView(view: 'chat' | 'settings' | 'canvas'): void {
     this.activeView = view;
