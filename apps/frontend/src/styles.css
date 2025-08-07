@@ -1,3 +1,44 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Basic styling for rendered markdown content */
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 20px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+.markdown-content li {
+  list-style-type: disc;
+}
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  font-weight: 600;
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+.markdown-content code {
+  background-color: #f3f4f6;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+.markdown-content pre {
+  background-color: #1f2937;
+  color: #f9fafb;
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+.markdown-content pre code {
+  background-color: transparent;
+  padding: 0;
+}
+.markdown-content a {
+  color: #2563eb;
+  text-decoration: underline;
+}
