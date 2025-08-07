@@ -18,6 +18,16 @@ export class ChatService {
 
   public constructor(private http: HttpClient) {}
 
+  /**
+   * Sends a message using either a local model or an external provider.
+   *
+   * This function checks the provider specified in the payload and constructs
+   * the request body accordingly. If the provider is 'lm-studio', it sends the
+   * request to a local server with a fixed configuration. For other providers,
+   * it posts the payload directly to the configured API URL.
+   *
+   * @param payload - The message payload containing details like prompt and provider.
+   */
   public sendMessage(payload: SendMessagePayload): Observable<ChatApiResponse> {
     if (payload.provider === 'lm-studio') {
       const body = {
