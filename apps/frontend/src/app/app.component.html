@@ -65,7 +65,7 @@
 
           <input formControlName="apiKey" *ngIf="chatForm.get('provider')?.value === 'openai'" type="password" placeholder="OpenAI API Key..." class="p-2 border rounded-md flex-shrink w-1/4 focus:outline-none focus:ring-2 focus:ring-blue-500">
 
-          <input formControlName="prompt" type="text" placeholder="Type your message..." class="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <input formControlName="prompt" type="text" placeholder="Type your message..." class="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" (keydown.enter)="sendMessage(); $event.preventDefault()">
 
           <button type="submit" [disabled]="chatForm.invalid || isLoading" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors">
             Send
