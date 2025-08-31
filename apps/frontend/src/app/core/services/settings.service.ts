@@ -1,13 +1,11 @@
-import { Inject, Injectable, InjectionToken } from '@angular/core';
-import { Store } from 'tauri-plugin-store-api';
+import { Inject, Injectable } from '@angular/core';
+import { STORAGE_ADAPTER, StorageAdapter } from './storage-adapter';
 
 export interface AppSettings {
   openAiApiKey: string | null;
   openRouterApiKey: string | null;
   // Future settings can be added here: mistralApiKey, theme, etc.
 }
-
-export const SETTINGS_STORE = new InjectionToken<Store>('SETTINGS_STORE');
 
 @Injectable({
   providedIn: 'root',
@@ -18,7 +16,7 @@ export class SettingsService {
     openRouterApiKey: null,
   };
 
-  public constructor(@Inject(SETTINGS_STORE) private readonly store: Store) {
+  public constructor(@Inject(STORAGE_ADAPTER) private readonly store: StorageAdapter) {
     void this.load(); // Load settings on service initialization.
   }
 
