@@ -1,33 +1,56 @@
-import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, Res, Headers } from '@nestjs/common';
+import type { Response } from 'express';
 import { ChatService } from './chat.service';
-import { ChatPayload, ChatResponse } from './ai-engine/ai-api-engine.base';
-import { OpenRouterModel } from './ai-engine/openrouter.engine';
 
-// This class defines the shape of the data coming from the frontend.
-class ChatRequestDto implements ChatPayload {
-  public provider: string;
-  public prompt: string;
-  public apiKey?: string;
-  public model?: string;
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  attachments?: {
+    name: string;
+    type: string;
+    base64: string;
+    size: number;
+  }[];
+}
+
+export interface SendMessageDto {
+  provider: string;
+  messages?: ChatMessage[]; // New format with conversation history
+  prompt?: string;          // Legacy format for backward compatibility
+  apiKey?: string;
+  model?: string;
+  stream?: boolean;
+  attachments?: {
+    name: string;
+    type: string;
+    base64: string;
+    size: number;
+  }[];
 }
 
 @Controller('api/chat')
 export class ChatController {
-  public constructor(private readonly chatService: ChatService) {}
+  constructor(private readonly chatService: ChatService) {}
 
-  /**
-   * Handles incoming chat messages, identifies the provider, and processes them via ChatService.
-   */
   @Post()
-  public sendMessage(@Body() requestDto: ChatRequestDto): Promise<ChatResponse> {
-    const { provider, ...payload } = requestDto;
-    return this.chatService.handleMessage(provider, payload);
-  }
+  async sendMessage(
+    @Body() payload: SendMessageDto,
+    @Res() res: Response,
+    @Headers('accept') accept?: string,
+  ) {
+    // Für jetzt: Immer normale HTTP-Antworten verwenden (kein Streaming)
+    console.log('Received payload:', payload);
 
-  @Get('openrouter/models')
-  public listOpenRouterModels(
-    @Query('apiKey') apiKey: string,
-  ): Promise<OpenRouterModel[]> {
-    return this.chatService.listOpenRouterModels(apiKey);
+    try {
+      const result = await this.chatService.sendMessage(payload);
+      console.log('Sending response:', result);
+      res.json(result);
+    } catch (error) {
+      console.error('Error in chat controller:', error);
+      res.status(500).json({
+        error: 'An error occurred while processing your request',
+        details: error.message
+      });
+    }
   }
 }

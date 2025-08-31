@@ -23,6 +23,9 @@ let EngineRegistryService = class EngineRegistryService {
     get(provider) {
         return this.engines.get(provider);
     }
+    getEngine(provider) {
+        return this.engines.get(provider);
+    }
     getProviders() {
         return Array.from(this.engines.keys());
     }

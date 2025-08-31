@@ -1,6 +1,10 @@
-import { Component, OnInit, AfterViewChecked, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, AfterViewChecked, ElementRef, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { ChatMessageComponent } from '../chat-message/chat-message.component';
+import { CanvasComponent } from '../canvas/canvas.component';
+import { LiveCodeComponent } from '../live-code/live-code.component';
+import { FileUploadComponent } from '../file-upload/file-upload.component';
 
 import {
   ChatService,
@@ -9,25 +13,38 @@ import {
   OpenRouterModel,
 } from '../../services/chat.service';
 import { SettingsService } from '../../services/settings.service';
-import { ChatMessage } from '../../../models/chat.model';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
+import { ChatMessage, ChatOptions, ChatAttachment, ChatSession } from '../../../models/chat.model';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ChatMessageComponent, CanvasComponent, LiveCodeComponent, FileUploadComponent],
   templateUrl: './chat.component.html',
   host: { class: 'flex flex-col flex-1 min-h-0' },
 })
-export class ChatComponent implements OnInit, AfterViewChecked {
+export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   public chatForm!: FormGroup;
   public messages: ChatMessage[] = [];
   public isLoading = false;
+  public currentChat: ChatSession | null = null;
+  private subscriptions: Subscription[] = [];
+
+  // Nuevas propiedades para Canvas y Live Code
+  public chatOptions: ChatOptions = {
+    canvasEnabled: false,
+    liveCodeEnabled: false
+  };
+  public showCanvasModal = false;
+  public showLiveCodeModal = false;
 
   public openRouterProviders: string[] = [];
   private openRouterModels: OpenRouterModel[] = [];
   public filteredOpenRouterModels: OpenRouterModel[] = [];
+
+  // File upload properties
+  public currentAttachments: ChatAttachment[] = [];
+  public uploadError: string = '';
 
   @ViewChild('chatContainer') private chatContainer!: ElementRef<HTMLDivElement>;
 
@@ -53,6 +70,28 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       apiKey: [''],
       prompt: ['', Validators.required],
     });
+
+    // IMPORTANT: Subscribe to currentChat$ in constructor to catch all updates
+    this.subscriptions.push(
+      this.chatService.currentChat$.subscribe(chat => {
+        this.currentChat = chat;
+        if (chat) {
+          this.messages = [...chat.messages]; // Create new array reference
+        } else {
+          this.messages = [];
+        }
+      })
+    );
+
+    // Subscribe to new chat requests to ensure proper state sync
+    this.subscriptions.push(
+      this.chatService.newChatRequested$.subscribe(() => {
+        // The ChatService already handles creating the new chat
+        // This subscription ensures any additional UI state is reset if needed
+        this.isLoading = false;
+        this.chatForm.get('prompt')?.enable();
+      })
+    );
   }
 
   public requiresApiKey(provider: string | null | undefined): boolean {
@@ -86,11 +125,9 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       modelControl?.updateValueAndValidity();
     });
 
-    this.chatForm
-      .get('openRouterProvider')
-      ?.valueChanges.subscribe((prov) => {
-        this.filterModelsForProvider(prov);
-      });
+    this.chatForm.get('openRouterProvider')?.valueChanges.subscribe((prov) => {
+      this.filterModelsForProvider(prov);
+    });
 
     this.chatForm.get('apiKey')?.valueChanges.subscribe(() => {
       if (this.chatForm.get('provider')?.value === 'openrouter') {
@@ -98,57 +135,232 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       }
     });
 
-    this.messages.push({
-      sender: 'ai',
-      text: 'Welcome! Select a provider and ask a question.',
-    });
+    // Remove the manual message push - this is now handled by ChatService
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
   public sendMessage(): void {
     if (this.chatForm.invalid) return;
 
     const formValue = this.chatForm.value;
-    this.addUserAndLoadingMessages(formValue.prompt);
-    this.togglePrompt(false);
 
-    const apiKey = formValue.apiKey || this.settingsService.getApiKey(formValue.provider);
-    const payload: SendMessagePayload = {
-      provider: formValue.provider,
-      prompt: formValue.prompt,
-      apiKey: apiKey || undefined,
-      model:
-        formValue.provider === 'openrouter' ? formValue.model : undefined,
+    // Create user message in both formats (OpenAI + Legacy)
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: formValue.prompt,
+      sender: 'user',
+      text: formValue.prompt,
+      attachments: this.currentAttachments.length > 0 ? [...this.currentAttachments] : undefined
     };
 
+    // Add user message to current chat
+    this.chatService.addMessageToCurrentChat(userMessage);
+
+    // Add loading AI message
+    const loadingMessage: ChatMessage = {
+      role: 'assistant',
+      content: '',
+      sender: 'ai',
+      text: '',
+      isLoading: true
+    };
+    this.chatService.addMessageToCurrentChat(loadingMessage);
+
+    this.isLoading = true;
+
+    // Reset and disable input
+    const promptControl = this.chatForm.get('prompt');
+    const originalPrompt = formValue.prompt;
+    promptControl?.setValue('');
+    promptControl?.disable();
+
+    const apiKey = formValue.apiKey || this.settingsService.getApiKey(formValue.provider);
+
+    // Get current chat and prepare messages for API
+    const currentChat = this.chatService.getCurrentChat();
+    if (!currentChat) {
+      console.error('No current chat found');
+      return;
+    }
+
+    // Prepare complete conversation history for API
+    const apiMessages = this.chatService.prepareMessagesForAPI(currentChat.messages);
+
+    // Add system message if canvas or live code is enabled
+    const systemMessages: ChatMessage[] = [];
+    if (this.chatOptions.canvasEnabled || this.chatOptions.liveCodeEnabled) {
+      let systemContent = 'You are a helpful assistant.';
+      if (this.chatOptions.canvasEnabled) {
+        systemContent += ' Please include HTML/CSS/SVG code that can be visualized when relevant.';
+      }
+      if (this.chatOptions.liveCodeEnabled) {
+        systemContent += ' Please include executable code examples when relevant.';
+      }
+      systemMessages.push({
+        role: 'system',
+        content: systemContent
+      });
+    }
+
+    const payload: SendMessagePayload = {
+      provider: formValue.provider,
+      messages: [...systemMessages, ...apiMessages], // Send complete conversation history
+      apiKey: apiKey || undefined,
+      model: formValue.provider === 'openrouter' ? formValue.model : undefined,
+      // Keep legacy prompt for backward compatibility with backend
+      prompt: originalPrompt
+    };
+
+    console.log('Sending conversation history to API:', payload.messages);
+
     this.chatService.sendMessage(payload).subscribe({
-      next: (res) => this.handleSuccess(res),
-      error: (err) => this.handleError(err),
+      next: (res) => {
+        this.handleSuccess(res);
+      },
+      error: (err) => {
+        this.handleError(err);
+      },
     });
+
+    // Clear attachments
+    this.currentAttachments = [];
   }
 
-  /**
-   * Invoked after the view has been checked to scroll to the bottom.
-   */
+  private handleSuccess(res: ChatApiResponse): void {
+    const codeInfo = this.extractCodeFromResponse(res.content);
+
+    // Update the last message (loading message) in current chat with both formats
+    this.chatService.updateLastMessageInCurrentChat({
+      role: 'assistant',
+      content: res.content,
+      sender: 'ai',
+      text: res.content,
+      isLoading: false,
+      ...codeInfo
+    });
+
+    this.isLoading = false;
+    this.togglePrompt(true);
+  }
+
+  private handleError(err: any): void {
+    const errorMessage = `Error: ${err.error?.message || 'Failed to communicate with the backend.'}`;
+
+    // Update the last message (loading message) in current chat with both formats
+    this.chatService.updateLastMessageInCurrentChat({
+      role: 'assistant',
+      content: errorMessage,
+      sender: 'ai',
+      text: errorMessage,
+      isLoading: false
+    });
+
+    this.isLoading = false;
+    this.togglePrompt(true);
+  }
+
+  // Neue Methode für Streaming-Chunks
+  private handleStreamChunk(chunk: { content: string; done?: boolean }): void {
+    const lastIndex = this.messages.length - 1;
+    const lastMessage = this.messages[lastIndex];
+
+    if (lastMessage && lastMessage.sender === 'ai') {
+      if (chunk.done) {
+        // Stream ist beendet
+        lastMessage.isLoading = false;
+        const codeInfo = this.extractCodeFromResponse(lastMessage.text || lastMessage.content || '');
+        Object.assign(lastMessage, codeInfo);
+        this.isLoading = false;
+        this.togglePrompt(true);
+      } else {
+        // Füge neuen Content zum bestehenden Text hinzu
+        const currentText = lastMessage.text || lastMessage.content || '';
+        lastMessage.text = currentText + chunk.content;
+        lastMessage.content = currentText + chunk.content;
+        lastMessage.isLoading = true; // Zeige weiterhin Loading-Animation
+      }
+    }
+  }
+
+  // Neue Methode für Stream-Completion
+  private handleStreamComplete(): void {
+    const lastIndex = this.messages.length - 1;
+    const lastMessage = this.messages[lastIndex];
+
+    if (lastMessage && lastMessage.sender === 'ai') {
+      lastMessage.isLoading = false;
+      const codeInfo = this.extractCodeFromResponse(lastMessage.text || lastMessage.content || '');
+      Object.assign(lastMessage, codeInfo);
+    }
+
+    this.isLoading = false;
+    this.togglePrompt(true);
+  }
+
+  // Nuevos métodos para Canvas y Live Code
+  public toggleCanvas(): void {
+    this.chatOptions.canvasEnabled = !this.chatOptions.canvasEnabled;
+  }
+
+  public toggleLiveCode(): void {
+    this.chatOptions.liveCodeEnabled = !this.chatOptions.liveCodeEnabled;
+  }
+
+  public openCanvasModal(): void {
+    this.showCanvasModal = true;
+  }
+
+  public closeCanvasModal(): void {
+    this.showCanvasModal = false;
+  }
+
+  public openLiveCodeModal(): void {
+    this.showLiveCodeModal = true;
+  }
+
+  public closeLiveCodeModal(): void {
+    this.showLiveCodeModal = false;
+  }
+
+  // Método para detectar código en la respuesta de IA
+  private extractCodeFromResponse(content: string): { hasCanvas: boolean; hasLiveCode: boolean; canvasCode?: string; liveCode?: string } {
+    const htmlRegex = /```(?:html|svg|xml)([\s\S]*?)```/i;
+    const jsRegex = /```(?:javascript|js|ts|typescript)([\s\S]*?)```/i;
+
+    const htmlMatch = content.match(htmlRegex);
+    const jsMatch = content.match(jsRegex);
+
+    return {
+      hasCanvas: !!htmlMatch,
+      hasLiveCode: !!jsMatch,
+      canvasCode: htmlMatch ? htmlMatch[1].trim() : undefined,
+      liveCode: jsMatch ? jsMatch[1].trim() : undefined
+    };
+  }
+
+  /** Invoked after the view has been checked to scroll to the bottom. */
   public ngAfterViewChecked(): void {
     this.scrollToBottom();
   }
 
-  /**
-   * Converts markdown text to sanitized HTML.
-   * @param text The raw markdown text from the LLM.
-   */
-  public renderMarkdown(text: string): string {
-    const rawHtml = marked.parse(text);
-    const sanitizedHtml = DOMPurify.sanitize(rawHtml as string);
-    return sanitizedHtml;
-  }
-
-  /**
-   * Adds a user message and an AI loading message to the messages array and sets isLoading to true.
-   */
+  /** Adds a user message and an AI loading message to the messages array and sets isLoading to true. */
   private addUserAndLoadingMessages(prompt: string): void {
-    this.messages.push({ sender: 'user', text: prompt });
-    this.messages.push({ sender: 'ai', text: '', isLoading: true });
+    this.messages.push({
+      role: 'user',
+      content: prompt,
+      sender: 'user',
+      text: prompt
+    });
+    this.messages.push({
+      role: 'assistant',
+      content: '',
+      sender: 'ai',
+      text: '',
+      isLoading: true
+    });
     this.isLoading = true;
   }
 
@@ -162,25 +374,28 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     }
   }
 
-  private handleSuccess(res: ChatApiResponse): void {
-    const lastIndex = this.messages.length - 1;
-    this.messages[lastIndex] = { sender: 'ai', text: res.content };
-    this.isLoading = false;
-    this.togglePrompt(true);
+  // Métodos para manejar eventos desde los mensajes
+  public onCanvasRequested(code: string): void {
+    // Actualizar el código del canvas y abrir el modal
+    const lastMessage = this.messages[this.messages.length - 1];
+    if (lastMessage) {
+      lastMessage.canvasCode = code;
+    }
+    this.openCanvasModal();
   }
 
-  private handleError(err: any): void {
-    const errorMessage = `Error: ${err.error?.message || 'Failed to communicate with the backend.'}`;
-    const lastIndex = this.messages.length - 1;
-    this.messages[lastIndex] = { sender: 'ai', text: errorMessage };
-    this.isLoading = false;
-    this.togglePrompt(true);
+  public onLiveCodeRequested(code: string): void {
+    // Actualizar el código live y abrir el modal
+    const lastMessage = this.messages[this.messages.length - 1];
+    if (lastMessage) {
+      lastMessage.liveCode = code;
+    }
+    this.openLiveCodeModal();
   }
 
   private loadOpenRouterModels(): void {
     const apiKey =
-      this.chatForm.get('apiKey')?.value ||
-      this.settingsService.getApiKey('openrouter');
+      this.chatForm.get('apiKey')?.value || this.settingsService.getApiKey('openrouter');
     if (!apiKey) return;
     this.chatService.getOpenRouterModels(apiKey).subscribe((models) => {
       this.openRouterModels = models;
@@ -207,14 +422,24 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     }
   }
 
-  /**
-   * Scrolls the chat container to the bottom.
-   */
+  /** Scrolls the chat container to the bottom. */
   private scrollToBottom(): void {
     const container = this.chatContainer?.nativeElement;
     if (container) {
       container.scrollTop = container.scrollHeight;
     }
   }
-}
 
+  // File upload event handlers
+  public onAttachmentsChange(attachments: ChatAttachment[]): void {
+    this.currentAttachments = attachments;
+  }
+
+  public onUploadError(error: string): void {
+    this.uploadError = error;
+    // Fehler nach 5 Sekunden automatisch ausblenden
+    setTimeout(() => {
+      this.uploadError = '';
+    }, 5000);
+  }
+}

@@ -1,0 +1,19 @@
+<div class="border rounded-md mb-4" [ngClass]="{'border-blue-500': isEditing}">
+  <div class="flex justify-between items-center px-2 py-1 bg-gray-200 rounded-t-md">
+    <span class="text-sm font-semibold">{{ language }}</span>
+    <div class="space-x-2">
+      <button *ngIf="!isEditing" (click)="toggleEdit()" class="text-xs text-blue-600">Edit</button>
+      <button *ngIf="isEditing" (click)="restore()" class="text-xs text-blue-600">Restore</button>
+      <button (click)="copy()" class="text-xs text-blue-600">
+        {{ copied ? 'Copied!' : 'Copy' }}
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="isEditing; else viewMode">
+    <textarea [(ngModel)]="editableContent" (input)="onInput()" class="w-full p-2 font-mono text-sm max-h-64 overflow-auto"></textarea>
+  </div>
+  <ng-template #viewMode>
+    <pre class="p-2 text-sm max-h-64 overflow-auto"><code>{{ content }}</code></pre>
+  </ng-template>
+</div>

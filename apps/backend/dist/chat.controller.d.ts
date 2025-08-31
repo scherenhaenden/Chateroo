@@ -1,13 +1,31 @@
+import type { Response } from 'express';
 import { ChatService } from './chat.service';
-import { ChatPayload, ChatResponse } from './ai-engine/ai-api-engine.base';
-declare class ChatRequestDto implements ChatPayload {
+export interface ChatMessage {
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    attachments?: {
+        name: string;
+        type: string;
+        base64: string;
+        size: number;
+    }[];
+}
+export interface SendMessageDto {
     provider: string;
-    prompt: string;
+    messages?: ChatMessage[];
+    prompt?: string;
     apiKey?: string;
+    model?: string;
+    stream?: boolean;
+    attachments?: {
+        name: string;
+        type: string;
+        base64: string;
+        size: number;
+    }[];
 }
 export declare class ChatController {
     private readonly chatService;
     constructor(chatService: ChatService);
-    sendMessage(requestDto: ChatRequestDto): Promise<ChatResponse>;
+    sendMessage(payload: SendMessageDto, res: Response, accept?: string): Promise<void>;
 }
-export {};

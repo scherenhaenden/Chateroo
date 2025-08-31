@@ -1,15 +1,110 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { AiApiEngine, ChatPayload, ChatResponse } from './ai-api-engine.base';
+import {
+  AiApiEngine,
+  ChatPayload,
+  ChatResponse,
+  StreamChunk,
+} from './ai-api-engine.base';
 
 @Injectable()
 export class GeminiEngine extends AiApiEngine {
   public readonly provider = 'gemini';
-  private readonly apiUrl = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+  private readonly apiUrl =
+    'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 
   public constructor(private readonly httpService: HttpService) {
     super();
+  }
+
+  /**
+   * Streaming version of sendMessage for real-time responses
+   */
+  public async *sendMessageStream(
+    payload: ChatPayload,
+  ): AsyncIterableIterator<StreamChunk> {
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${payload.apiKey}`,
+    };
+
+    // Erweitere die Nachricht um Datei-Informationen
+    let messageContent = payload.prompt;
+
+    if (payload.attachments && payload.attachments.length > 0) {
+      const attachmentInfo = payload.attachments
+        .map((att) => {
+          if (att.type.startsWith('image/')) {
+            return `[BILD: ${att.name} - ${this.formatFileSize(att.size)}]`;
+          } else if (this.isTextFile(att.type)) {
+            try {
+              const content = Buffer.from(att.base64, 'base64').toString(
+                'utf-8',
+              );
+              return `[DATEI: ${att.name}]\n${content.substring(0, 1500)}${content.length > 1500 ? '\n[...gekürzt]' : ''}`;
+            } catch {
+              return `[DATEI: ${att.name} - nicht lesbar]`;
+            }
+          }
+          return `[DATEI: ${att.name} - ${this.formatFileSize(att.size)}]`;
+        })
+        .join('\n\n');
+
+      messageContent = `${payload.prompt}\n\nAngehängte Dateien:\n${attachmentInfo}`;
+    }
+
+    const body = {
+      model: 'gemini-1.5-flash',
+      messages: [{ role: 'user', content: messageContent }],
+      stream: true, // Enable streaming
+    };
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(this.apiUrl, body, {
+          headers,
+          responseType: 'stream',
+        }),
+      );
+
+      let buffer = '';
+
+      for await (const chunk of response.data) {
+        buffer += (chunk as any).toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') {
+              yield { content: '', done: true };
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(data) as any;
+              const content = parsed.choices?.[0]?.delta?.content as string;
+              if (content) {
+                yield { content };
+              }
+            } catch {
+              // Ignore parsing errors for malformed chunks
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error(
+        'Fehler bei der Streaming-Kommunikation mit Gemini:',
+        error.response?.data || error.message,
+      );
+      yield {
+        content: 'Sorry, there was an error communicating with Gemini.',
+        done: true,
+      };
+    }
   }
 
   /**
@@ -28,9 +123,34 @@ export class GeminiEngine extends AiApiEngine {
       Authorization: `Bearer ${payload.apiKey}`,
     };
 
+    // Erweitere die Nachricht um Datei-Informationen
+    let messageContent = payload.prompt;
+
+    if (payload.attachments && payload.attachments.length > 0) {
+      const attachmentInfo = payload.attachments
+        .map((att) => {
+          if (att.type.startsWith('image/')) {
+            return `[BILD: ${att.name} - ${this.formatFileSize(att.size)}]`;
+          } else if (this.isTextFile(att.type)) {
+            try {
+              const content = Buffer.from(att.base64, 'base64').toString(
+                'utf-8',
+              );
+              return `[DATEI: ${att.name}]\n${content.substring(0, 1500)}${content.length > 1500 ? '\n[...gekürzt]' : ''}`;
+            } catch (e) {
+              return `[DATEI: ${att.name} - nicht lesbar]`;
+            }
+          }
+          return `[DATEI: ${att.name} - ${this.formatFileSize(att.size)}]`;
+        })
+        .join('\n\n');
+
+      messageContent = `${payload.prompt}\n\nAngehängte Dateien:\n${attachmentInfo}`;
+    }
+
     const body = {
       model: 'gemini-1.5-flash',
-      messages: [{ role: 'user', content: payload.prompt }],
+      messages: [{ role: 'user', content: messageContent }],
     };
 
     try {
@@ -45,9 +165,36 @@ export class GeminiEngine extends AiApiEngine {
     } catch (error) {
       console.error(
         'Fehler bei der Kommunikation mit Gemini:',
-        (error as any).response?.data || (error as any).message,
+        error.response?.data || error.message,
       );
-      return { content: 'Sorry, there was an error communicating with Gemini.' };
+      return {
+        content: 'Sorry, there was an error communicating with Gemini.',
+      };
     }
+  }
+
+  private formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  private isTextFile(mimeType: string): boolean {
+    const textTypes = [
+      'text/plain',
+      'text/markdown',
+      'text/csv',
+      'application/json',
+      'text/html',
+      'text/css',
+      'text/javascript',
+      'application/javascript',
+      'text/xml',
+      'application/xml',
+      'application/typescript',
+    ];
+    return textTypes.includes(mimeType) || mimeType.startsWith('text/');
   }
 }

@@ -1,35 +1,146 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { ChatPayload, ChatResponse } from './ai-engine/ai-api-engine.base';
+import { Injectable } from '@nestjs/common';
 import { EngineRegistryService } from './ai-engine/engine-registry.service';
-import { OpenRouterEngine, OpenRouterModel } from './ai-engine/openrouter.engine';
+import {
+  ChatPayload,
+  ChatResponse,
+  StreamChunk,
+} from './ai-engine/ai-api-engine.base';
+
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  attachments?: {
+    name: string;
+    type: string;
+    base64: string;
+    size: number;
+  }[];
+}
+
+export interface ChatServicePayload {
+  provider: string;
+  messages?: ChatMessage[]; // New format with conversation history
+  prompt?: string;          // Legacy format for backward compatibility
+  apiKey?: string;
+  model?: string;
+  attachments?: {
+    name: string;
+    type: string;
+    base64: string;
+    size: number;
+  }[];
+}
 
 @Injectable()
 export class ChatService {
-  public constructor(private readonly registry: EngineRegistryService) {}
+  constructor(private readonly engineRegistry: EngineRegistryService) {}
+
+  sendMessage(payload: ChatServicePayload): Promise<ChatResponse> {
+    const engine = this.engineRegistry.get(payload.provider);
+    if (!engine) {
+      throw new Error(`Provider ${payload.provider} not supported`);
+    }
+
+    // Convert messages array to prompt if needed
+    const prompt = this.extractPromptFromPayload(payload);
+    console.log('Extracted prompt from payload:', prompt);
+    console.log('Original payload messages:', payload.messages);
+
+    const chatPayload: ChatPayload = {
+      prompt: prompt,
+      apiKey: payload.apiKey,
+      model: payload.model,
+      attachments: payload.attachments || payload.messages?.[payload.messages.length - 1]?.attachments,
+    };
+
+    return engine.sendMessage(chatPayload);
+  }
+
+  async *sendMessageStream(
+    payload: ChatServicePayload,
+  ): AsyncIterableIterator<StreamChunk> {
+    const engine = this.engineRegistry.get(payload.provider);
+    if (!engine) {
+      yield {
+        content: `Provider ${payload.provider} not supported`,
+        done: true,
+      };
+      return;
+    }
+
+    // Convert messages array to prompt if needed
+    const prompt = this.extractPromptFromPayload(payload);
+
+    const chatPayload: ChatPayload = {
+      prompt: prompt,
+      apiKey: payload.apiKey,
+      model: payload.model,
+      attachments: payload.attachments || payload.messages?.[payload.messages.length - 1]?.attachments,
+      stream: true,
+    };
+
+    // Use streaming if available, otherwise fall back to regular message
+    if (engine.sendMessageStream) {
+      yield* engine.sendMessageStream(chatPayload);
+    } else {
+      // Fallback for engines without streaming support
+      const response = await engine.sendMessage(chatPayload);
+      yield { content: response.content, done: true };
+    }
+  }
 
   /**
-   * Handles incoming chat messages by selecting an appropriate provider and sending the message.
+   * Extracts a prompt from the payload, supporting both new messages format and legacy prompt format
    */
-  public async handleMessage(
-    provider: string,
-    payload: ChatPayload,
-  ): Promise<ChatResponse> {
-    const engine = this.registry.get(provider);
-    if (!engine) {
-      throw new NotFoundException(`Provider '${provider}' wird nicht unterstützt.`);
+  private extractPromptFromPayload(payload: ChatServicePayload): string {
+    // If we have messages array (new format), convert to conversational prompt
+    if (payload.messages && payload.messages.length > 0) {
+      return this.convertMessagesToConversationalPrompt(payload.messages);
     }
-    return engine.sendMessage(payload);
+
+    // Fallback to legacy prompt format
+    if (payload.prompt) {
+      return payload.prompt;
+    }
+
+    throw new Error('No prompt or messages provided');
   }
 
-  public getProviders(): string[] {
-    return this.registry.getProviders();
-  }
+  /**
+   * Converts messages array to a conversational prompt that includes context
+   */
+  private convertMessagesToConversationalPrompt(messages: ChatMessage[]): string {
+    let conversationalPrompt = '';
 
-  public async listOpenRouterModels(apiKey: string): Promise<OpenRouterModel[]> {
-    const engine = this.registry.get('openrouter') as OpenRouterEngine | undefined;
-    if (!engine) {
-      throw new NotFoundException(`Provider 'openrouter' wird nicht unterstützt.`);
+    // Add system messages first
+    const systemMessages = messages.filter(msg => msg.role === 'system');
+    if (systemMessages.length > 0) {
+      conversationalPrompt += systemMessages.map(msg => msg.content).join('\n') + '\n\n';
     }
-    return engine.listModels(apiKey);
+
+    // Add conversation history
+    const conversationMessages = messages.filter(msg => msg.role !== 'system');
+
+    if (conversationMessages.length > 1) {
+      conversationalPrompt += 'Previous conversation:\n';
+      // Include all but the last message as context
+      for (let i = 0; i < conversationMessages.length - 1; i++) {
+        const msg = conversationMessages[i];
+        if (msg.role === 'user') {
+          conversationalPrompt += `User: ${msg.content}\n`;
+        } else if (msg.role === 'assistant') {
+          conversationalPrompt += `Assistant: ${msg.content}\n`;
+        }
+      }
+      conversationalPrompt += '\nCurrent question:\n';
+    }
+
+    // Add the current user message
+    const lastMessage = conversationMessages[conversationMessages.length - 1];
+    if (lastMessage && lastMessage.role === 'user') {
+      conversationalPrompt += lastMessage.content;
+    }
+
+    return conversationalPrompt;
   }
 }

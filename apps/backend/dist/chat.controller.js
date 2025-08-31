@@ -15,27 +15,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatController = void 0;
 const common_1 = require("@nestjs/common");
 const chat_service_1 = require("./chat.service");
-class ChatRequestDto {
-    provider;
-    prompt;
-    apiKey;
-}
 let ChatController = class ChatController {
     chatService;
     constructor(chatService) {
         this.chatService = chatService;
     }
-    sendMessage(requestDto) {
-        const { provider, ...payload } = requestDto;
-        return this.chatService.handleMessage(provider, payload);
+    async sendMessage(payload, res, accept) {
+        console.log('Received payload:', payload);
+        try {
+            const result = await this.chatService.sendMessage(payload);
+            console.log('Sending response:', result);
+            res.json(result);
+        }
+        catch (error) {
+            console.error('Error in chat controller:', error);
+            res.status(500).json({
+                error: 'An error occurred while processing your request',
+                details: error.message
+            });
+        }
     }
 };
 exports.ChatController = ChatController;
 __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Res)()),
+    __param(2, (0, common_1.Headers)('accept')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [ChatRequestDto]),
+    __metadata("design:paramtypes", [Object, Object, String]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "sendMessage", null);
 exports.ChatController = ChatController = __decorate([

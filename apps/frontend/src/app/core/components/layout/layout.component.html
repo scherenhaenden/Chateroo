@@ -1,27 +1,38 @@
 <div class="flex h-screen bg-gray-200 font-sans">
   <aside class="w-64 bg-gray-800 text-white flex flex-col justify-between">
-    <div>
-      <div class="p-4 border-b border-gray-700">
+    <div class="flex flex-col h-full">
+      <div class="p-4 border-b border-gray-700 flex justify-between items-center">
         <h1 class="text-xl font-bold">Chateroo</h1>
+        <button (click)="newChat()" class="p-1 rounded-md hover:bg-gray-700" title="New Chat">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
       </div>
-      <nav class="flex-1 p-2 space-y-2">
-        <a routerLink="/chat" routerLinkActive="bg-gray-700 text-white" [routerLinkActiveOptions]="{exact: true}" class="flex items-center px-4 py-2 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white">
-          <span>Chat</span>
-        </a>
-        <a routerLink="/canvas" routerLinkActive="bg-gray-700 text-white" class="flex items-center px-4 py-2 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white">
-          <span>Canvas</span>
+
+      <!-- Chat History -->
+      <div class="flex-1 overflow-y-auto p-2 space-y-1">
+        <div
+          *ngFor="let chat of chatSessions"
+          (click)="switchToChat(chat.id)"
+          [class.bg-gray-700]="currentChat?.id === chat.id"
+          class="px-3 py-2 rounded-md text-sm cursor-pointer hover:bg-gray-700 transition-colors">
+          <div class="truncate text-white">{{ chat.title }}</div>
+          <div class="text-xs text-gray-400 mt-1">
+            {{ formatDate(chat.updatedAt) }}
+          </div>
+        </div>
+      </div>
+
+      <nav class="p-2 border-t border-gray-700">
+        <a routerLink="/settings" routerLinkActive="bg-gray-700 text-white" class="flex items-center px-4 py-2 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white">
+          <span>Settings</span>
         </a>
       </nav>
     </div>
-    <nav class="p-2 border-t border-gray-700">
-      <a routerLink="/settings" routerLinkActive="bg-gray-700 text-white" class="flex items-center px-4 py-2 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white">
-        <span>Settings</span>
-      </a>
-    </nav>
   </aside>
 
   <main class="flex-1 flex flex-col bg-gray-100">
     <router-outlet></router-outlet>
   </main>
 </div>
-

@@ -18,6 +18,13 @@ export class EngineRegistryService {
   }
 
   /**
+   * Retrieves an AI API engine by provider name (alias for get method).
+   */
+  public getEngine(provider: string): AiApiEngine | undefined {
+    return this.engines.get(provider);
+  }
+
+  /**
    * Returns an array of provider keys.
    */
   public getProviders(): string[] {
