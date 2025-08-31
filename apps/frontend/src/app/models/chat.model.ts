@@ -24,3 +24,11 @@ export interface ChatOptions {
   canvasEnabled: boolean;
   liveCodeEnabled: boolean;
 }
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  createdAt: Date;
+  updatedAt: Date;
+}

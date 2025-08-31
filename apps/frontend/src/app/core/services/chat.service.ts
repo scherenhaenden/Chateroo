@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, Subject, BehaviorSubject } from 'rxjs';
+import { ChatSession, ChatMessage } from '../../models/chat.model';
 
 export interface SendMessagePayload {
   provider: string;
@@ -35,8 +36,95 @@ export interface OpenRouterModel {
 @Injectable({ providedIn: 'root' })
 export class ChatService {
   private apiUrl = 'http://localhost:3000/api/chat';
+  private newChatSubject = new Subject<void>();
 
-  public constructor(private http: HttpClient) {}
+  // Chat Management
+  private chatSessions: ChatSession[] = [];
+  private currentChatId: string | null = null;
+  private chatSessionsSubject = new BehaviorSubject<ChatSession[]>([]);
+  private currentChatSubject = new BehaviorSubject<ChatSession | null>(null);
+
+  public newChatRequested$ = this.newChatSubject.asObservable();
+  public chatSessions$ = this.chatSessionsSubject.asObservable();
+  public currentChat$ = this.currentChatSubject.asObservable();
+
+  public constructor(private http: HttpClient) {
+    // Initialize with first chat
+    this.createNewChat();
+  }
+
+  public createNewChat(): ChatSession {
+    const newChat: ChatSession = {
+      id: this.generateChatId(),
+      title: 'New Chat',
+      messages: [{
+        sender: 'ai',
+        text: 'Welcome! Select a provider and ask a question.'
+      }],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    this.chatSessions.unshift(newChat); // Add to beginning of array
+    this.currentChatId = newChat.id;
+    this.chatSessionsSubject.next([...this.chatSessions]);
+    this.currentChatSubject.next(newChat);
+
+    return newChat;
+  }
+
+  public switchToChat(chatId: string): void {
+    const chat = this.chatSessions.find(c => c.id === chatId);
+    if (chat) {
+      this.currentChatId = chatId;
+      this.currentChatSubject.next(chat);
+    }
+  }
+
+  public getCurrentChat(): ChatSession | null {
+    if (!this.currentChatId) return null;
+    return this.chatSessions.find(c => c.id === this.currentChatId) || null;
+  }
+
+  public addMessageToCurrentChat(message: ChatMessage): void {
+    const currentChat = this.getCurrentChat();
+    if (currentChat) {
+      currentChat.messages.push(message);
+      currentChat.updatedAt = new Date();
+
+      // Update title based on first user message
+      if (message.sender === 'user' && currentChat.title === 'New Chat' && message.text.length > 0) {
+        currentChat.title = message.text.length > 50
+          ? message.text.substring(0, 50) + '...'
+          : message.text;
+      }
+
+      this.chatSessionsSubject.next([...this.chatSessions]);
+      this.currentChatSubject.next(currentChat);
+    }
+  }
+
+  public updateLastMessageInCurrentChat(message: Partial<ChatMessage>): void {
+    const currentChat = this.getCurrentChat();
+    if (currentChat && currentChat.messages.length > 0) {
+      // Create new message object instead of mutating existing one for Angular change detection
+      const lastMessageIndex = currentChat.messages.length - 1;
+      const lastMessage = currentChat.messages[lastMessageIndex];
+      currentChat.messages[lastMessageIndex] = { ...lastMessage, ...message };
+      currentChat.updatedAt = new Date();
+      this.chatSessionsSubject.next([...this.chatSessions]);
+      this.currentChatSubject.next({ ...currentChat });
+    }
+  }
+
+  public requestNewChat(): void {
+    this.createNewChat();
+    this.newChatSubject.next();
+  }
+
+  private generateChatId(): string {
+    return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
 
   /**
    * Sends a message to the backend with the provided payload (non-streaming).

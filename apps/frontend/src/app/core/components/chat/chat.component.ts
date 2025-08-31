@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewChecked, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, AfterViewChecked, ElementRef, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ChatMessageComponent } from '../chat-message/chat-message.component';
@@ -13,7 +13,8 @@ import {
   OpenRouterModel,
 } from '../../services/chat.service';
 import { SettingsService } from '../../services/settings.service';
-import { ChatMessage, ChatOptions, ChatAttachment } from '../../../models/chat.model';
+import { ChatMessage, ChatOptions, ChatAttachment, ChatSession } from '../../../models/chat.model';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-chat',
@@ -22,10 +23,12 @@ import { ChatMessage, ChatOptions, ChatAttachment } from '../../../models/chat.m
   templateUrl: './chat.component.html',
   host: { class: 'flex flex-col flex-1 min-h-0' },
 })
-export class ChatComponent implements OnInit, AfterViewChecked {
+export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   public chatForm!: FormGroup;
   public messages: ChatMessage[] = [];
   public isLoading = false;
+  public currentChat: ChatSession | null = null;
+  private subscriptions: Subscription[] = [];
 
   // Nuevas propiedades para Canvas y Live Code
   public chatOptions: ChatOptions = {
@@ -67,6 +70,30 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       apiKey: [''],
       prompt: ['', Validators.required],
     });
+
+    // IMPORTANT: Subscribe to currentChat$ in constructor to catch all updates
+    this.subscriptions.push(
+      this.chatService.currentChat$.subscribe(chat => {
+        console.log('ChatComponent: Current chat changed:', chat);
+        this.currentChat = chat;
+        if (chat) {
+          console.log('ChatComponent: Setting messages:', chat.messages);
+          this.messages = [...chat.messages]; // Create new array reference
+        } else {
+          this.messages = [];
+        }
+      })
+    );
+
+    // Subscribe to new chat requests to ensure proper state sync
+    this.subscriptions.push(
+      this.chatService.newChatRequested$.subscribe(() => {
+        // The ChatService already handles creating the new chat
+        // This subscription ensures any additional UI state is reset if needed
+        this.isLoading = false;
+        this.chatForm.get('prompt')?.enable();
+      })
+    );
   }
 
   public requiresApiKey(provider: string | null | undefined): boolean {
@@ -110,10 +137,11 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       }
     });
 
-    this.messages.push({
-      sender: 'ai',
-      text: 'Welcome! Select a provider and ask a question.',
-    });
+    // Remove the manual message push - this is now handled by ChatService
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
   public sendMessage(): void {
@@ -121,18 +149,23 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
     const formValue = this.chatForm.value;
 
-    // Erstelle Benutzer-Nachricht mit Anhängen
+    // Create user message with attachments
     const userMessage: ChatMessage = {
       sender: 'user',
       text: formValue.prompt,
       attachments: this.currentAttachments.length > 0 ? [...this.currentAttachments] : undefined
     };
 
-    this.messages.push(userMessage);
-    this.messages.push({ sender: 'ai', text: '', isLoading: true });
+    // Add user message to current chat
+    this.chatService.addMessageToCurrentChat(userMessage);
+
+    // Add loading AI message
+    const loadingMessage: ChatMessage = { sender: 'ai', text: '', isLoading: true };
+    this.chatService.addMessageToCurrentChat(loadingMessage);
+
     this.isLoading = true;
 
-    // PROBLEM 1 LÖSUNG: Input-Feld sofort zurücksetzen und deaktivieren
+    // Reset and disable input
     const promptControl = this.chatForm.get('prompt');
     const originalPrompt = formValue.prompt;
     promptControl?.setValue('');
@@ -140,7 +173,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
     const apiKey = formValue.apiKey || this.settingsService.getApiKey(formValue.provider);
 
-    // Modificar den Prompt wenn Canvas oder Live Code aktiviert sind
+    // Enhance prompt if needed
     let enhancedPrompt = originalPrompt;
     if (this.chatOptions.canvasEnabled) {
       enhancedPrompt += ' (Por favor, incluye código HTML/CSS/SVG visualizable en tu respuesta)';
@@ -164,22 +197,44 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         : undefined
     };
 
-    // DEBUGGING: Ersten das normale HTTP verwenden statt Streaming
-    console.log('Sending message with payload:', payload);
-
     this.chatService.sendMessage(payload).subscribe({
       next: (res) => {
-        console.log('Received response:', res);
         this.handleSuccess(res);
       },
       error: (err) => {
-        console.error('Error occurred:', err);
         this.handleError(err);
       },
     });
 
-    // Anhänge nach dem Senden löschen
+    // Clear attachments
     this.currentAttachments = [];
+  }
+
+  private handleSuccess(res: ChatApiResponse): void {
+    const codeInfo = this.extractCodeFromResponse(res.content);
+
+    // Update the last message (loading message) in current chat
+    this.chatService.updateLastMessageInCurrentChat({
+      text: res.content,
+      isLoading: false,
+      ...codeInfo
+    });
+
+    this.isLoading = false;
+    this.togglePrompt(true);
+  }
+
+  private handleError(err: any): void {
+    const errorMessage = `Error: ${err.error?.message || 'Failed to communicate with the backend.'}`;
+
+    // Update the last message (loading message) in current chat
+    this.chatService.updateLastMessageInCurrentChat({
+      text: errorMessage,
+      isLoading: false
+    });
+
+    this.isLoading = false;
+    this.togglePrompt(true);
   }
 
   // Neue Methode für Streaming-Chunks
@@ -281,19 +336,6 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     }
   }
 
-  private handleSuccess(res: ChatApiResponse): void {
-    const lastIndex = this.messages.length - 1;
-    const codeInfo = this.extractCodeFromResponse(res.content);
-
-    this.messages[lastIndex] = {
-      sender: 'ai',
-      text: res.content,
-      ...codeInfo
-    };
-    this.isLoading = false;
-    this.togglePrompt(true);
-  }
-
   // Métodos para manejar eventos desde los mensajes
   public onCanvasRequested(code: string): void {
     // Actualizar el código del canvas y abrir el modal
@@ -311,14 +353,6 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       lastMessage.liveCode = code;
     }
     this.openLiveCodeModal();
-  }
-
-  private handleError(err: any): void {
-    const errorMessage = `Error: ${err.error?.message || 'Failed to communicate with the backend.'}`;
-    const lastIndex = this.messages.length - 1;
-    this.messages[lastIndex] = { sender: 'ai', text: errorMessage };
-    this.isLoading = false;
-    this.togglePrompt(true);
   }
 
   private loadOpenRouterModels(): void {
