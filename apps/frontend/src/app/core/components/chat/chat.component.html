@@ -19,7 +19,7 @@
       </button>
     </div>
     <div class="p-4 h-full">
-      <app-canvas [codeToRender]="messages[messages.length - 1]?.canvasCode || ''"></app-canvas>
+      <app-canvas [codeToRender]="messages[messages.length - 1].canvasCode || ''"></app-canvas>
     </div>
   </div>
 </div>
@@ -35,7 +35,7 @@
       </button>
     </div>
     <div class="p-4 h-full">
-      <app-live-code [code]="messages[messages.length - 1]?.liveCode || ''" language="javascript"></app-live-code>
+      <app-live-code [code]="messages[messages.length - 1].liveCode || ''" language="javascript"></app-live-code>
     </div>
   </div>
 </div>
