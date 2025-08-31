@@ -9,8 +9,11 @@ export interface ChatAttachment {
 }
 
 export interface ChatMessage {
-  sender: 'user' | 'ai';
-  text: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  // Legacy fields for UI compatibility
+  sender?: 'user' | 'ai';
+  text?: string;
   provider?: string;
   isLoading?: boolean;
   hasCanvas?: boolean;

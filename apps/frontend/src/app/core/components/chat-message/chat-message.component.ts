@@ -34,7 +34,7 @@ export class ChatMessageComponent implements OnInit {
   public segments: Segment[] = [];
 
   public ngOnInit(): void {
-    this.segments = this.parseSegments(this.message.text);
+    this.segments = this.parseSegments(this.message.text || this.message.content || '');
   }
 
   public renderMarkdown(text: string): string {

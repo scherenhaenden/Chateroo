@@ -5,10 +5,12 @@ import { ChatSession, ChatMessage } from '../../models/chat.model';
 
 export interface SendMessagePayload {
   provider: string;
-  prompt: string;
+  messages: ChatMessage[]; // Complete conversation history
   apiKey?: string;
   model?: string;
   stream?: boolean;
+  // Legacy support for single prompt
+  prompt?: string;
   attachments?: {
     name: string;
     type: string;
@@ -58,6 +60,9 @@ export class ChatService {
       id: this.generateChatId(),
       title: 'New Chat',
       messages: [{
+        role: 'assistant',
+        content: 'Welcome! Select a provider and ask a question.',
+        // Legacy UI fields
         sender: 'ai',
         text: 'Welcome! Select a provider and ask a question.'
       }],
@@ -89,14 +94,23 @@ export class ChatService {
   public addMessageToCurrentChat(message: ChatMessage): void {
     const currentChat = this.getCurrentChat();
     if (currentChat) {
-      currentChat.messages.push(message);
+      // Ensure message has both new format (role/content) and legacy format (sender/text) for UI compatibility
+      const normalizedMessage: ChatMessage = {
+        ...message,
+        role: message.role || (message.sender === 'user' ? 'user' : 'assistant'),
+        content: message.content || message.text || '',
+        sender: message.sender || (message.role === 'user' ? 'user' : 'ai'),
+        text: message.text || message.content || ''
+      };
+
+      currentChat.messages.push(normalizedMessage);
       currentChat.updatedAt = new Date();
 
       // Update title based on first user message
-      if (message.sender === 'user' && currentChat.title === 'New Chat' && message.text.length > 0) {
-        currentChat.title = message.text.length > 50
-          ? message.text.substring(0, 50) + '...'
-          : message.text;
+      if (normalizedMessage.role === 'user' && currentChat.title === 'New Chat' && normalizedMessage.content.length > 0) {
+        currentChat.title = normalizedMessage.content.length > 50
+          ? normalizedMessage.content.substring(0, 50) + '...'
+          : normalizedMessage.content;
       }
 
       this.chatSessionsSubject.next([...this.chatSessions]);
@@ -220,5 +234,20 @@ export class ChatService {
     return this.http.get<OpenRouterModel[]>(`${this.apiUrl}/openrouter/models`, {
       params: { apiKey },
     });
+  }
+
+  /**
+   * Prepares messages for API in OpenAI format, filtering out UI-only messages
+   */
+  public prepareMessagesForAPI(messages: ChatMessage[]): ChatMessage[] {
+    return messages
+      .filter(msg => msg.role !== undefined && msg.content !== undefined && msg.content.trim() !== '')
+      .filter(msg => !msg.isLoading) // Exclude loading messages
+      .map(msg => ({
+        role: msg.role!,
+        content: msg.content!
+        // Note: Attachments are handled separately in the payload to avoid type conflicts
+        // The original ChatAttachment format requires id, url, isImage which are UI-specific
+      }));
   }
 }

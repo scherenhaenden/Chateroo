@@ -147,8 +147,10 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     const formValue = this.chatForm.value;
 
-    // Create user message with attachments
+    // Create user message in both formats (OpenAI + Legacy)
     const userMessage: ChatMessage = {
+      role: 'user',
+      content: formValue.prompt,
       sender: 'user',
       text: formValue.prompt,
       attachments: this.currentAttachments.length > 0 ? [...this.currentAttachments] : undefined
@@ -158,7 +160,13 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.chatService.addMessageToCurrentChat(userMessage);
 
     // Add loading AI message
-    const loadingMessage: ChatMessage = { sender: 'ai', text: '', isLoading: true };
+    const loadingMessage: ChatMessage = {
+      role: 'assistant',
+      content: '',
+      sender: 'ai',
+      text: '',
+      isLoading: true
+    };
     this.chatService.addMessageToCurrentChat(loadingMessage);
 
     this.isLoading = true;
@@ -171,29 +179,42 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     const apiKey = formValue.apiKey || this.settingsService.getApiKey(formValue.provider);
 
-    // Enhance prompt if needed
-    let enhancedPrompt = originalPrompt;
-    if (this.chatOptions.canvasEnabled) {
-      enhancedPrompt += ' (Por favor, incluye código HTML/CSS/SVG visualizable en tu respuesta)';
+    // Get current chat and prepare messages for API
+    const currentChat = this.chatService.getCurrentChat();
+    if (!currentChat) {
+      console.error('No current chat found');
+      return;
     }
-    if (this.chatOptions.liveCodeEnabled) {
-      enhancedPrompt += ' (Por favor, incluye código ejecutable en tu respuesta)';
+
+    // Prepare complete conversation history for API
+    const apiMessages = this.chatService.prepareMessagesForAPI(currentChat.messages);
+
+    // Add system message if canvas or live code is enabled
+    const systemMessages: ChatMessage[] = [];
+    if (this.chatOptions.canvasEnabled || this.chatOptions.liveCodeEnabled) {
+      let systemContent = 'You are a helpful assistant.';
+      if (this.chatOptions.canvasEnabled) {
+        systemContent += ' Please include HTML/CSS/SVG code that can be visualized when relevant.';
+      }
+      if (this.chatOptions.liveCodeEnabled) {
+        systemContent += ' Please include executable code examples when relevant.';
+      }
+      systemMessages.push({
+        role: 'system',
+        content: systemContent
+      });
     }
 
     const payload: SendMessagePayload = {
       provider: formValue.provider,
-      prompt: enhancedPrompt,
+      messages: [...systemMessages, ...apiMessages], // Send complete conversation history
       apiKey: apiKey || undefined,
       model: formValue.provider === 'openrouter' ? formValue.model : undefined,
-      attachments: this.currentAttachments.length > 0
-        ? this.currentAttachments.map(att => ({
-            name: att.name,
-            type: att.type,
-            base64: att.base64!,
-            size: att.size
-          }))
-        : undefined
+      // Keep legacy prompt for backward compatibility with backend
+      prompt: originalPrompt
     };
+
+    console.log('Sending conversation history to API:', payload.messages);
 
     this.chatService.sendMessage(payload).subscribe({
       next: (res) => {
@@ -211,8 +232,11 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   private handleSuccess(res: ChatApiResponse): void {
     const codeInfo = this.extractCodeFromResponse(res.content);
 
-    // Update the last message (loading message) in current chat
+    // Update the last message (loading message) in current chat with both formats
     this.chatService.updateLastMessageInCurrentChat({
+      role: 'assistant',
+      content: res.content,
+      sender: 'ai',
       text: res.content,
       isLoading: false,
       ...codeInfo
@@ -225,8 +249,11 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   private handleError(err: any): void {
     const errorMessage = `Error: ${err.error?.message || 'Failed to communicate with the backend.'}`;
 
-    // Update the last message (loading message) in current chat
+    // Update the last message (loading message) in current chat with both formats
     this.chatService.updateLastMessageInCurrentChat({
+      role: 'assistant',
+      content: errorMessage,
+      sender: 'ai',
       text: errorMessage,
       isLoading: false
     });
@@ -244,13 +271,15 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
       if (chunk.done) {
         // Stream ist beendet
         lastMessage.isLoading = false;
-        const codeInfo = this.extractCodeFromResponse(lastMessage.text);
+        const codeInfo = this.extractCodeFromResponse(lastMessage.text || lastMessage.content || '');
         Object.assign(lastMessage, codeInfo);
         this.isLoading = false;
         this.togglePrompt(true);
       } else {
         // Füge neuen Content zum bestehenden Text hinzu
-        lastMessage.text += chunk.content;
+        const currentText = lastMessage.text || lastMessage.content || '';
+        lastMessage.text = currentText + chunk.content;
+        lastMessage.content = currentText + chunk.content;
         lastMessage.isLoading = true; // Zeige weiterhin Loading-Animation
       }
     }
@@ -263,7 +292,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     if (lastMessage && lastMessage.sender === 'ai') {
       lastMessage.isLoading = false;
-      const codeInfo = this.extractCodeFromResponse(lastMessage.text);
+      const codeInfo = this.extractCodeFromResponse(lastMessage.text || lastMessage.content || '');
       Object.assign(lastMessage, codeInfo);
     }
 
@@ -319,8 +348,19 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   /** Adds a user message and an AI loading message to the messages array and sets isLoading to true. */
   private addUserAndLoadingMessages(prompt: string): void {
-    this.messages.push({ sender: 'user', text: prompt });
-    this.messages.push({ sender: 'ai', text: '', isLoading: true });
+    this.messages.push({
+      role: 'user',
+      content: prompt,
+      sender: 'user',
+      text: prompt
+    });
+    this.messages.push({
+      role: 'assistant',
+      content: '',
+      sender: 'ai',
+      text: '',
+      isLoading: true
+    });
     this.isLoading = true;
   }
 

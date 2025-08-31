@@ -2,9 +2,21 @@ import { Controller, Post, Body, Res, Headers } from '@nestjs/common';
 import type { Response } from 'express';
 import { ChatService } from './chat.service';
 
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  attachments?: {
+    name: string;
+    type: string;
+    base64: string;
+    size: number;
+  }[];
+}
+
 export interface SendMessageDto {
   provider: string;
-  prompt: string;
+  messages?: ChatMessage[]; // New format with conversation history
+  prompt?: string;          // Legacy format for backward compatibility
   apiKey?: string;
   model?: string;
   stream?: boolean;

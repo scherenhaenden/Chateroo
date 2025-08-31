@@ -22,11 +22,14 @@ let ChatService = class ChatService {
         if (!engine) {
             throw new Error(`Provider ${payload.provider} not supported`);
         }
+        const prompt = this.extractPromptFromPayload(payload);
+        console.log('Extracted prompt from payload:', prompt);
+        console.log('Original payload messages:', payload.messages);
         const chatPayload = {
-            prompt: payload.prompt,
+            prompt: prompt,
             apiKey: payload.apiKey,
             model: payload.model,
-            attachments: payload.attachments,
+            attachments: payload.attachments || payload.messages?.[payload.messages.length - 1]?.attachments,
         };
         return engine.sendMessage(chatPayload);
     }
@@ -39,11 +42,12 @@ let ChatService = class ChatService {
             };
             return;
         }
+        const prompt = this.extractPromptFromPayload(payload);
         const chatPayload = {
-            prompt: payload.prompt,
+            prompt: prompt,
             apiKey: payload.apiKey,
             model: payload.model,
-            attachments: payload.attachments,
+            attachments: payload.attachments || payload.messages?.[payload.messages.length - 1]?.attachments,
             stream: true,
         };
         if (engine.sendMessageStream) {
@@ -53,6 +57,41 @@ let ChatService = class ChatService {
             const response = await engine.sendMessage(chatPayload);
             yield { content: response.content, done: true };
         }
+    }
+    extractPromptFromPayload(payload) {
+        if (payload.messages && payload.messages.length > 0) {
+            return this.convertMessagesToConversationalPrompt(payload.messages);
+        }
+        if (payload.prompt) {
+            return payload.prompt;
+        }
+        throw new Error('No prompt or messages provided');
+    }
+    convertMessagesToConversationalPrompt(messages) {
+        let conversationalPrompt = '';
+        const systemMessages = messages.filter(msg => msg.role === 'system');
+        if (systemMessages.length > 0) {
+            conversationalPrompt += systemMessages.map(msg => msg.content).join('\n') + '\n\n';
+        }
+        const conversationMessages = messages.filter(msg => msg.role !== 'system');
+        if (conversationMessages.length > 1) {
+            conversationalPrompt += 'Previous conversation:\n';
+            for (let i = 0; i < conversationMessages.length - 1; i++) {
+                const msg = conversationMessages[i];
+                if (msg.role === 'user') {
+                    conversationalPrompt += `User: ${msg.content}\n`;
+                }
+                else if (msg.role === 'assistant') {
+                    conversationalPrompt += `Assistant: ${msg.content}\n`;
+                }
+            }
+            conversationalPrompt += '\nCurrent question:\n';
+        }
+        const lastMessage = conversationMessages[conversationMessages.length - 1];
+        if (lastMessage && lastMessage.role === 'user') {
+            conversationalPrompt += lastMessage.content;
+        }
+        return conversationalPrompt;
     }
 };
 exports.ChatService = ChatService;
