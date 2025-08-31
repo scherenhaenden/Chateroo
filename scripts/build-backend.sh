@@ -9,7 +9,25 @@ cd apps/backend
 npm run build
 
 # Prepare paths
-TARGET="${TAURI_ENV_TARGET_TRIPLE:-$(uname -m)-unknown-linux-gnu}"
+# Determine the target triple. When TAURI_ENV_TARGET_TRIPLE is provided by
+# the Tauri CLI we use it; otherwise infer it from the host platform so that
+# the generated binary matches the current operating system.
+if [ -n "$TAURI_ENV_TARGET_TRIPLE" ]; then
+  TARGET="$TAURI_ENV_TARGET_TRIPLE"
+else
+  ARCH="$(uname -m)"
+  case "$(uname -s)" in
+    Darwin)
+      TARGET="${ARCH}-apple-darwin"
+      ;;
+    MINGW*|MSYS*|CYGWIN*|Windows_NT)
+      TARGET="${ARCH}-pc-windows-msvc"
+      ;;
+    *)
+      TARGET="${ARCH}-unknown-linux-gnu"
+      ;;
+  esac
+fi
 BIN_DIR="../../src-tauri/binaries"
 
 echo "Creating backend binary for target $TARGET..."
