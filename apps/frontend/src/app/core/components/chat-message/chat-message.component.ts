@@ -6,6 +6,19 @@ import { ChatMessage } from '../../../models/chat.model';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
+interface TextSegment {
+  type: 'text';
+  content: string;
+}
+
+interface CodeSegment {
+  type: 'code';
+  content: string;
+  language: string;
+}
+
+type Segment = TextSegment | CodeSegment;
+
 @Component({
   selector: 'app-chat-message',
   standalone: true,
@@ -15,7 +28,7 @@ import DOMPurify from 'dompurify';
 export class ChatMessageComponent implements OnInit {
   @Input() public message!: ChatMessage;
 
-  public segments: Array<{ type: 'text' | 'code'; content: string; language?: string }> = [];
+  public segments: Segment[] = [];
 
   public ngOnInit(): void {
     this.segments = this.parseSegments(this.message.text);
@@ -26,8 +39,8 @@ export class ChatMessageComponent implements OnInit {
     return DOMPurify.sanitize(rawHtml as string);
   }
 
-  private parseSegments(text: string): Array<{ type: 'text' | 'code'; content: string; language?: string }> {
-    const segments: Array<{ type: 'text' | 'code'; content: string; language?: string }> = [];
+  private parseSegments(text: string): Segment[] {
+    const segments: Segment[] = [];
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
     let lastIndex = 0;
     let match: RegExpExecArray | null;
@@ -44,8 +57,8 @@ export class ChatMessageComponent implements OnInit {
     return segments;
   }
 
-  public isRenderable(language: string | undefined): boolean {
-    return ['html', 'svg'].includes((language || '').toLowerCase());
+  public isRenderable(language: string): boolean {
+    return ['html', 'svg'].includes(language.toLowerCase());
   }
 }
 
