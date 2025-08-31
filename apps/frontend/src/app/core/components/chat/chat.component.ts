@@ -13,6 +13,7 @@ import DOMPurify from 'dompurify';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './chat.component.html',
+  host: { class: 'flex flex-col flex-1 min-h-0' },
 })
 export class ChatComponent implements OnInit {
   public chatForm!: FormGroup;
