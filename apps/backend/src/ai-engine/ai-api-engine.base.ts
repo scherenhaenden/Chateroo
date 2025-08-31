@@ -1,7 +1,12 @@
 export interface ChatPayload {
   prompt: string;
   apiKey?: string;
-  // Zukünftige Optionen wie temperature, model, etc. können hier hinzugefügt werden
+  /** Optionales Modell, das für die Anfrage verwendet werden soll. */
+  model?: string;
+  /** Temperaturwert zur Steuerung der Zufälligkeit. */
+  temperature?: number;
+  /** Maximale Anzahl an Tokens für die Antwort. */
+  maxTokens?: number;
 }
 
 export interface ChatResponse {
