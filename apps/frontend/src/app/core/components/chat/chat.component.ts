@@ -29,6 +29,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     'perplexity',
     'grok',
     'deepseek',
+    'openrouter',
   ];
 
   public constructor(

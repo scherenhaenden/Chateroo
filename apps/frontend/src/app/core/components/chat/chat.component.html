@@ -21,6 +21,7 @@
       <option value="perplexity">Perplexity</option>
       <option value="grok">Grok</option>
       <option value="deepseek">Deepseek</option>
+      <option value="openrouter">OpenRouter</option>
     </select>
 
     <input formControlName="apiKey" *ngIf="requiresApiKey(chatForm.get('provider')?.value)" type="password" placeholder="API Key..." class="p-2 border rounded-md flex-shrink w-1/4 focus:outline-none focus:ring-2 focus:ring-blue-500">
