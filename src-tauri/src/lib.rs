@@ -1,5 +1,5 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() -> () {
+pub fn run() -> tauri::Result<()> {
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
@@ -13,5 +13,4 @@ pub fn run() -> () {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
 }

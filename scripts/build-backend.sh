@@ -9,7 +9,23 @@ cd apps/backend
 npm run build
 
 # Prepare paths
-TARGET="${TAURI_ENV_TARGET_TRIPLE:-$(uname -m)-unknown-linux-gnu}"
+if [ -z "$TAURI_ENV_TARGET_TRIPLE" ]; then
+  UNAME_S="$(uname -s)"
+  UNAME_M="$(uname -m)"
+  if [ "$UNAME_S" = "Darwin" ]; then
+    if [ "$UNAME_M" = "x86_64" ]; then
+      TARGET="x86_64-apple-darwin"
+    elif [ "$UNAME_M" = "arm64" ]; then
+      TARGET="aarch64-apple-darwin"
+    else
+      TARGET="${UNAME_M}-apple-darwin"
+    fi
+  else
+    TARGET="${UNAME_M}-unknown-linux-gnu"
+  fi
+else
+  TARGET="$TAURI_ENV_TARGET_TRIPLE"
+fi
 BIN_DIR="../../src-tauri/binaries"
 
 echo "Creating backend binary for target $TARGET..."
@@ -25,7 +41,7 @@ cat > "$BIN_DIR/backend-$TARGET" << 'EOF'
 #!/bin/bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$DIR"
-node backend-dist/main.js
+${NODE_PATH_OVERRIDE:-/usr/bin/env node} backend-dist/main.js
 EOF
 
 chmod +x "$BIN_DIR/backend-$TARGET"
