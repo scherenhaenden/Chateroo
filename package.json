@@ -21,7 +21,7 @@
     "dev:frontend": "npm run --workspace=frontend start",
     "dev:backend": "npm run --workspace=backend start:dev",
     "build:frontend": "npm run --workspace=frontend build",
-    "build:backend": "npm run --workspace=backend build",
+    "build:backend": "bash scripts/build-backend.sh",
     "build:all": "npm run build:frontend && npm run build:backend",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
