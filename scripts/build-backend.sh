@@ -9,7 +9,18 @@ cd apps/backend
 npm run build
 
 # Prepare paths
-TARGET="${TAURI_ENV_TARGET_TRIPLE:-$(uname -m)-unknown-linux-gnu}"
+if [ -n "$TAURI_ENV_TARGET_TRIPLE" ]; then
+  TARGET="$TAURI_ENV_TARGET_TRIPLE"
+else
+  ARCH="$(uname -m)"
+  OS="$(uname -s)"
+  case "$OS" in
+    Linux*)   TARGET="${ARCH}-unknown-linux-gnu" ;;
+    Darwin*)  TARGET="${ARCH}-apple-darwin" ;;
+    MINGW*|MSYS*|CYGWIN*) TARGET="${ARCH}-pc-windows-msvc" ;;
+    *)        TARGET="${ARCH}-unknown-linux-gnu" ;;
+  esac
+fi
 BIN_DIR="../../src-tauri/binaries"
 
 echo "Creating backend binary for target $TARGET..."
