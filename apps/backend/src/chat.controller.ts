@@ -7,6 +7,7 @@ class ChatRequestDto implements ChatPayload {
   public provider: string;
   public prompt: string;
   public apiKey?: string;
+  public model?: string;
 }
 
 @Controller('api/chat')
@@ -17,7 +18,9 @@ export class ChatController {
    * Handles incoming chat messages, identifies the provider, and processes them via ChatService.
    */
   @Post()
-  public sendMessage(@Body() requestDto: ChatRequestDto): Promise<ChatResponse> {
+  public sendMessage(
+    @Body() requestDto: ChatRequestDto,
+  ): Promise<ChatResponse> {
     const { provider, ...payload } = requestDto;
     return this.chatService.handleMessage(provider, payload);
   }
