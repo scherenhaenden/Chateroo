@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewChecked, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 
@@ -15,10 +15,12 @@ import DOMPurify from 'dompurify';
   templateUrl: './chat.component.html',
   host: { class: 'flex flex-col flex-1 min-h-0' },
 })
-export class ChatComponent implements OnInit {
+export class ChatComponent implements OnInit, AfterViewChecked {
   public chatForm!: FormGroup;
   public messages: ChatMessage[] = [];
   public isLoading = false;
+
+  @ViewChild('chatContainer') private chatContainer!: ElementRef<HTMLDivElement>;
 
   private readonly providersWithApiKey = [
     'openai',
@@ -84,6 +86,10 @@ export class ChatComponent implements OnInit {
     });
   }
 
+  public ngAfterViewChecked(): void {
+    this.scrollToBottom();
+  }
+
   /**
    * Converts markdown text to sanitized HTML.
    * @param text The raw markdown text from the LLM.
@@ -126,6 +132,13 @@ export class ChatComponent implements OnInit {
     this.messages[lastIndex] = { sender: 'ai', text: errorMessage };
     this.isLoading = false;
     this.togglePrompt(true);
+  }
+
+  private scrollToBottom(): void {
+    const container = this.chatContainer?.nativeElement;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }
 }
 
