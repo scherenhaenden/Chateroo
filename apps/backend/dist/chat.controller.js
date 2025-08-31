@@ -22,16 +22,41 @@ let ChatController = class ChatController {
     }
     async sendMessage(payload, res, accept) {
         console.log('Received payload:', payload);
+        const isStream = payload.stream || accept?.includes('text/event-stream');
+        if (isStream) {
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            res.flushHeaders?.();
+            try {
+                for await (const chunk of this.chatService.sendMessageStream(payload)) {
+                    if (chunk.content) {
+                        res.write(`data: ${JSON.stringify({ content: chunk.content })}\n\n`);
+                    }
+                    if (chunk.done) {
+                        res.write('data: [DONE]\n\n');
+                        break;
+                    }
+                }
+            }
+            catch (error) {
+                console.error('Error in chat controller:', error);
+                res.write(`data: ${JSON.stringify({ error: 'An error occurred while processing your request' })}\n\n`);
+            }
+            finally {
+                res.end();
+            }
+            return;
+        }
         try {
             const result = await this.chatService.sendMessage(payload);
-            console.log('Sending response:', result);
             res.json(result);
         }
         catch (error) {
             console.error('Error in chat controller:', error);
             res.status(500).json({
                 error: 'An error occurred while processing your request',
-                details: error.message
+                details: error.message,
             });
         }
     }
