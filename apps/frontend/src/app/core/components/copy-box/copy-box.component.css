@@ -1,0 +1,4 @@
+/* Styles specific to the copy box component */
+textarea {
+  font-family: monospace;
+}
