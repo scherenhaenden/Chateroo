@@ -19,6 +19,7 @@ class ChatRequestDto {
     provider;
     prompt;
     apiKey;
+    model;
 }
 let ChatController = class ChatController {
     chatService;
@@ -29,6 +30,9 @@ let ChatController = class ChatController {
         const { provider, ...payload } = requestDto;
         return this.chatService.handleMessage(provider, payload);
     }
+    listOpenRouterModels(apiKey) {
+        return this.chatService.listOpenRouterModels(apiKey);
+    }
 };
 exports.ChatController = ChatController;
 __decorate([
@@ -38,6 +42,13 @@ __decorate([
     __metadata("design:paramtypes", [ChatRequestDto]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "sendMessage", null);
+__decorate([
+    (0, common_1.Get)('openrouter/models'),
+    __param(0, (0, common_1.Query)('apiKey')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "listOpenRouterModels", null);
 exports.ChatController = ChatController = __decorate([
     (0, common_1.Controller)('api/chat'),
     __metadata("design:paramtypes", [chat_service_1.ChatService])

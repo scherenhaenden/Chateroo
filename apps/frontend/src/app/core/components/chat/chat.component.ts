@@ -2,6 +2,8 @@ import { Component, OnInit, AfterViewChecked, ElementRef, ViewChild } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ChatMessageComponent } from '../chat-message/chat-message.component';
+import { CanvasComponent } from '../canvas/canvas.component';
+import { LiveCodeComponent } from '../live-code/live-code.component';
 
 import {
   ChatService,
@@ -10,12 +12,12 @@ import {
   OpenRouterModel,
 } from '../../services/chat.service';
 import { SettingsService } from '../../services/settings.service';
-import { ChatMessage } from '../../../models/chat.model';
+import { ChatMessage, ChatOptions } from '../../../models/chat.model';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ChatMessageComponent],
+  imports: [CommonModule, ReactiveFormsModule, ChatMessageComponent, CanvasComponent, LiveCodeComponent],
   templateUrl: './chat.component.html',
   host: { class: 'flex flex-col flex-1 min-h-0' },
 })
@@ -23,6 +25,14 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   public chatForm!: FormGroup;
   public messages: ChatMessage[] = [];
   public isLoading = false;
+
+  // Nuevas propiedades para Canvas y Live Code
+  public chatOptions: ChatOptions = {
+    canvasEnabled: false,
+    liveCodeEnabled: false
+  };
+  public showCanvasModal = false;
+  public showLiveCodeModal = false;
 
   public openRouterProviders: string[] = [];
   private openRouterModels: OpenRouterModel[] = [];
@@ -109,9 +119,19 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.togglePrompt(false);
 
     const apiKey = formValue.apiKey || this.settingsService.getApiKey(formValue.provider);
+
+    // Modificar el prompt si Canvas o Live Code están habilitados
+    let enhancedPrompt = formValue.prompt;
+    if (this.chatOptions.canvasEnabled) {
+      enhancedPrompt += ' (Por favor, incluye código HTML/CSS/SVG visualizable en tu respuesta)';
+    }
+    if (this.chatOptions.liveCodeEnabled) {
+      enhancedPrompt += ' (Por favor, incluye código ejecutable en tu respuesta)';
+    }
+
     const payload: SendMessagePayload = {
       provider: formValue.provider,
-      prompt: formValue.prompt,
+      prompt: enhancedPrompt,
       apiKey: apiKey || undefined,
       model: formValue.provider === 'openrouter' ? formValue.model : undefined,
     };
@@ -120,6 +140,47 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       next: (res) => this.handleSuccess(res),
       error: (err) => this.handleError(err),
     });
+  }
+
+  // Nuevos métodos para Canvas y Live Code
+  public toggleCanvas(): void {
+    this.chatOptions.canvasEnabled = !this.chatOptions.canvasEnabled;
+  }
+
+  public toggleLiveCode(): void {
+    this.chatOptions.liveCodeEnabled = !this.chatOptions.liveCodeEnabled;
+  }
+
+  public openCanvasModal(): void {
+    this.showCanvasModal = true;
+  }
+
+  public closeCanvasModal(): void {
+    this.showCanvasModal = false;
+  }
+
+  public openLiveCodeModal(): void {
+    this.showLiveCodeModal = true;
+  }
+
+  public closeLiveCodeModal(): void {
+    this.showLiveCodeModal = false;
+  }
+
+  // Método para detectar código en la respuesta de IA
+  private extractCodeFromResponse(content: string): { hasCanvas: boolean; hasLiveCode: boolean; canvasCode?: string; liveCode?: string } {
+    const htmlRegex = /```(?:html|svg|xml)([\s\S]*?)```/i;
+    const jsRegex = /```(?:javascript|js|ts|typescript)([\s\S]*?)```/i;
+
+    const htmlMatch = content.match(htmlRegex);
+    const jsMatch = content.match(jsRegex);
+
+    return {
+      hasCanvas: !!htmlMatch,
+      hasLiveCode: !!jsMatch,
+      canvasCode: htmlMatch ? htmlMatch[1].trim() : undefined,
+      liveCode: jsMatch ? jsMatch[1].trim() : undefined
+    };
   }
 
   /** Invoked after the view has been checked to scroll to the bottom. */
@@ -146,9 +207,34 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   private handleSuccess(res: ChatApiResponse): void {
     const lastIndex = this.messages.length - 1;
-    this.messages[lastIndex] = { sender: 'ai', text: res.content };
+    const codeInfo = this.extractCodeFromResponse(res.content);
+
+    this.messages[lastIndex] = {
+      sender: 'ai',
+      text: res.content,
+      ...codeInfo
+    };
     this.isLoading = false;
     this.togglePrompt(true);
+  }
+
+  // Métodos para manejar eventos desde los mensajes
+  public onCanvasRequested(code: string): void {
+    // Actualizar el código del canvas y abrir el modal
+    const lastMessage = this.messages[this.messages.length - 1];
+    if (lastMessage) {
+      lastMessage.canvasCode = code;
+    }
+    this.openCanvasModal();
+  }
+
+  public onLiveCodeRequested(code: string): void {
+    // Actualizar el código live y abrir el modal
+    const lastMessage = this.messages[this.messages.length - 1];
+    if (lastMessage) {
+      lastMessage.liveCode = code;
+    }
+    this.openLiveCodeModal();
   }
 
   private handleError(err: any): void {
@@ -196,4 +282,3 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     }
   }
 }
-

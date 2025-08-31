@@ -19,6 +19,7 @@ const gemini_engine_1 = require("./ai-engine/gemini.engine");
 const perplexity_engine_1 = require("./ai-engine/perplexity.engine");
 const grok_engine_1 = require("./ai-engine/grok.engine");
 const deepseek_engine_1 = require("./ai-engine/deepseek.engine");
+const openrouter_engine_1 = require("./ai-engine/openrouter.engine");
 const engine_registry_service_1 = require("./ai-engine/engine-registry.service");
 const ai_engine_constants_1 = require("./ai-engine/ai-engine.constants");
 let ChatModule = class ChatModule {
@@ -39,9 +40,10 @@ exports.ChatModule = ChatModule = __decorate([
             perplexity_engine_1.PerplexityEngine,
             grok_engine_1.GrokEngine,
             deepseek_engine_1.DeepseekEngine,
+            openrouter_engine_1.OpenRouterEngine,
             {
                 provide: ai_engine_constants_1.AI_ENGINES,
-                useFactory: (dummy, openAi, lmStudio, mistral, gemini, perplexity, grok, deepseek) => [
+                useFactory: (dummy, openAi, lmStudio, mistral, gemini, perplexity, grok, deepseek, openrouter) => [
                     dummy,
                     openAi,
                     lmStudio,
@@ -50,6 +52,7 @@ exports.ChatModule = ChatModule = __decorate([
                     perplexity,
                     grok,
                     deepseek,
+                    openrouter,
                 ],
                 inject: [
                     dummy_engine_1.DummyEngine,
@@ -60,6 +63,7 @@ exports.ChatModule = ChatModule = __decorate([
                     perplexity_engine_1.PerplexityEngine,
                     grok_engine_1.GrokEngine,
                     deepseek_engine_1.DeepseekEngine,
+                    openrouter_engine_1.OpenRouterEngine,
                 ],
             },
         ],

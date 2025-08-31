@@ -27,6 +27,13 @@ let ChatService = class ChatService {
     getProviders() {
         return this.registry.getProviders();
     }
+    async listOpenRouterModels(apiKey) {
+        const engine = this.registry.get('openrouter');
+        if (!engine) {
+            throw new common_1.NotFoundException(`Provider 'openrouter' wird nicht unterstützt.`);
+        }
+        return engine.listModels(apiKey);
+    }
 };
 exports.ChatService = ChatService;
 exports.ChatService = ChatService = __decorate([

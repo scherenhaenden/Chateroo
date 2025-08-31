@@ -1,6 +1,7 @@
 export interface ChatPayload {
     prompt: string;
     apiKey?: string;
+    model?: string;
 }
 export interface ChatResponse {
     content: string;

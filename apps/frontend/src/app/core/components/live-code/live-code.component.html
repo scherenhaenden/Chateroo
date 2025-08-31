@@ -1,0 +1,51 @@
+<div class="live-code-container border rounded-lg overflow-hidden">
+  <div class="flex bg-gray-100 border-b">
+    <div class="flex-1 px-4 py-2 font-medium text-sm text-gray-700">
+      Code Editor ({{ language }})
+    </div>
+    <div class="px-4 py-2">
+      <button
+        (click)="runCode()"
+        [disabled]="isRunning"
+        class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50">
+        {{ isRunning ? 'Running...' : 'Run' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 min-h-[300px]">
+    <!-- Code Section -->
+    <div class="p-4 bg-gray-900 text-green-400 font-mono text-sm overflow-auto">
+      <div [innerHTML]="highlightedCode"></div>
+    </div>
+
+    <!-- Output Section -->
+    <div class="p-4 bg-white border-l">
+      <div class="mb-2 font-medium text-sm text-gray-700">Output:</div>
+
+      <!-- Error display -->
+      <div *ngIf="error" class="mb-3 p-3 bg-red-100 border border-red-300 rounded text-red-700 text-sm">
+        <strong>Error:</strong> {{ error }}
+      </div>
+
+      <!-- Output display -->
+      <div *ngIf="output && !error" class="output-content">
+        <div *ngIf="language === 'html'" [innerHTML]="output" class="rendered-html"></div>
+        <div *ngIf="language === 'css'" [innerHTML]="output" class="rendered-css"></div>
+        <pre *ngIf="language === 'javascript'" class="whitespace-pre-wrap text-sm">{{ output }}</pre>
+      </div>
+
+      <!-- No output message -->
+      <div *ngIf="!output && !error && !isRunning" class="text-gray-500 text-sm italic">
+        No output yet. Click "Run" to execute the code.
+      </div>
+
+      <!-- Running indicator -->
+      <div *ngIf="isRunning" class="text-blue-600 text-sm">
+        <div class="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+        Executing code...
+      </div>
+    </div>
+  </div>
+</div>
+

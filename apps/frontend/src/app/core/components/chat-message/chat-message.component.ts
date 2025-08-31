@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CopyBoxComponent } from '../copy-box/copy-box.component';
 import { CanvasComponent } from '../canvas/canvas.component';
@@ -27,6 +27,8 @@ type Segment = TextSegment | CodeSegment;
 })
 export class ChatMessageComponent implements OnInit {
   @Input() public message!: ChatMessage;
+  @Output() public canvasRequested = new EventEmitter<string>();
+  @Output() public liveCodeRequested = new EventEmitter<string>();
 
   public segments: Segment[] = [];
 
@@ -60,5 +62,16 @@ export class ChatMessageComponent implements OnInit {
   public isRenderable(language: string): boolean {
     return ['html', 'svg'].includes(language.toLowerCase());
   }
-}
 
+  public openCanvas(): void {
+    if (this.message.canvasCode) {
+      this.canvasRequested.emit(this.message.canvasCode);
+    }
+  }
+
+  public openLiveCode(): void {
+    if (this.message.liveCode) {
+      this.liveCodeRequested.emit(this.message.liveCode);
+    }
+  }
+}
