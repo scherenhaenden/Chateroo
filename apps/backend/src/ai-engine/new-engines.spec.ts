@@ -5,6 +5,7 @@ import { GeminiEngine } from './gemini.engine';
 import { PerplexityEngine } from './perplexity.engine';
 import { GrokEngine } from './grok.engine';
 import { DeepseekEngine } from './deepseek.engine';
+import { OpenRouterEngine } from './openrouter.engine';
 
 describe.each([
   {
@@ -36,6 +37,12 @@ describe.each([
     Engine: DeepseekEngine,
     url: 'https://api.deepseek.com/chat/completions',
     model: 'deepseek-chat',
+  },
+  {
+    name: 'OpenRouter',
+    Engine: OpenRouterEngine,
+    url: 'https://openrouter.ai/api/v1/chat/completions',
+    model: 'openai/gpt-4o-mini',
   },
 ])('$nameEngine', ({ name, Engine, url, model }) => {
   let engine: InstanceType<typeof Engine>;

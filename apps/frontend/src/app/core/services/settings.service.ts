@@ -3,6 +3,7 @@ import { Store } from 'tauri-plugin-store-api';
 
 export interface AppSettings {
   openAiApiKey: string | null;
+  openRouterApiKey: string | null;
   // Future settings can be added here: mistralApiKey, theme, etc.
 }
 
@@ -14,6 +15,7 @@ export const SETTINGS_STORE = new InjectionToken<Store>('SETTINGS_STORE');
 export class SettingsService {
   private settings: AppSettings = {
     openAiApiKey: null,
+    openRouterApiKey: null,
   };
 
   public constructor(@Inject(SETTINGS_STORE) private readonly store: Store) {
@@ -27,6 +29,10 @@ export class SettingsService {
     const openAiApiKey = await this.store.get<string>('openAiApiKey');
     if (openAiApiKey) {
       this.settings.openAiApiKey = openAiApiKey;
+    }
+    const openRouterApiKey = await this.store.get<string>('openRouterApiKey');
+    if (openRouterApiKey) {
+      this.settings.openRouterApiKey = openRouterApiKey;
     }
   }
 
@@ -61,9 +67,12 @@ export class SettingsService {
   /**
    * Retrieves the API key for the specified provider.
    */
-  public getApiKey(provider: 'openai' /* | 'mistral' etc. */): string | null {
+  public getApiKey(provider: string): string | null {
     if (provider === 'openai') {
       return this.settings.openAiApiKey;
+    }
+    if (provider === 'openrouter') {
+      return this.settings.openRouterApiKey;
     }
     return null;
   }

@@ -6,10 +6,17 @@ export interface SendMessagePayload {
   provider: string;
   prompt: string;
   apiKey?: string;
+  model?: string;
 }
 
 export interface ChatApiResponse {
   content: string;
+}
+
+export interface OpenRouterModel {
+  id: string;
+  name: string;
+  top_provider: { id: string; is_moderated: boolean };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -23,6 +30,12 @@ export class ChatService {
    */
   public sendMessage(payload: SendMessagePayload): Observable<ChatApiResponse> {
     return this.http.post<ChatApiResponse>(this.apiUrl, payload);
+  }
+
+  public getOpenRouterModels(apiKey: string): Observable<OpenRouterModel[]> {
+    return this.http.get<OpenRouterModel[]>(`${this.apiUrl}/openrouter/models`, {
+      params: { apiKey },
+    });
   }
 }
 
