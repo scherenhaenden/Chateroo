@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewChecked, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { CopyBoxComponent } from '../copy-box/copy-box.component';
 
 import {
   ChatService,
@@ -16,7 +17,7 @@ import DOMPurify from 'dompurify';
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CopyBoxComponent],
   templateUrl: './chat.component.html',
   host: { class: 'flex flex-col flex-1 min-h-0' },
 })
@@ -141,6 +142,27 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     const rawHtml = marked.parse(text);
     const sanitizedHtml = DOMPurify.sanitize(rawHtml as string);
     return sanitizedHtml;
+  }
+
+  /**
+   * Splits a message into text and code segments for specialized rendering.
+   */
+  public parseSegments(text: string): Array<{ type: 'text' | 'code'; content: string; language?: string }> {
+    const segments: Array<{ type: 'text' | 'code'; content: string; language?: string }> = [];
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        segments.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+      }
+      segments.push({ type: 'code', language: match[1] || '', content: match[2] });
+      lastIndex = codeBlockRegex.lastIndex;
+    }
+    if (lastIndex < text.length) {
+      segments.push({ type: 'text', content: text.slice(lastIndex) });
+    }
+    return segments;
   }
 
   /**
