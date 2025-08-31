@@ -24,6 +24,9 @@ export class ChatController {
     return this.chatService.handleMessage(provider, payload);
   }
 
+  /**
+   * Retrieves a list of open router models.
+   */
   @Get('openrouter/models')
   public listOpenRouterModels(
     @Query('apiKey') apiKey: string,
