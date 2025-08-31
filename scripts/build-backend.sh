@@ -14,6 +14,12 @@ if [ -n "$TAURI_ENV_TARGET_TRIPLE" ]; then
   TARGET="$TAURI_ENV_TARGET_TRIPLE"
 else
   ARCH="$(uname -m)"
+  case "$ARCH" in
+    arm64|aarch64) ARCH="aarch64" ;;
+    x86_64)        ARCH="x86_64" ;;
+    i386|i686)     ARCH="i686" ;;
+  esac
+
   OS="$(uname -s)"
   case "$OS" in
     Linux*)   TARGET="${ARCH}-unknown-linux-gnu" ;;
