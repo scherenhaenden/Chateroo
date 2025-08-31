@@ -86,6 +86,9 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     });
   }
 
+  /**
+   * Invoked after the view has been checked to scroll to the bottom.
+   */
   public ngAfterViewChecked(): void {
     this.scrollToBottom();
   }
@@ -134,6 +137,9 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.togglePrompt(true);
   }
 
+  /**
+   * Scrolls the chat container to the bottom.
+   */
   private scrollToBottom(): void {
     const container = this.chatContainer?.nativeElement;
     if (container) {
