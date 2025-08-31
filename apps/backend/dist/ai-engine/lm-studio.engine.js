@@ -46,6 +46,53 @@ let LmStudioEngine = class LmStudioEngine extends ai_api_engine_base_1.AiApiEngi
             };
         }
     }
+    async *sendMessageStream(payload) {
+        try {
+            const requestBody = {
+                model: 'local-model',
+                messages: [{ role: 'user', content: payload.prompt }],
+                temperature: 0.7,
+                stream: true,
+            };
+            const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(this.apiUrl, requestBody, {
+                headers: { 'Content-Type': 'application/json' },
+                responseType: 'stream',
+            }));
+            let buffer = '';
+            for await (const chunk of response.data) {
+                buffer += chunk.toString();
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+                for (const line of lines) {
+                    if (line.trim() === '')
+                        continue;
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6).trim();
+                        if (data === '[DONE]') {
+                            yield { content: '', done: true };
+                            return;
+                        }
+                        try {
+                            const parsed = JSON.parse(data);
+                            const content = parsed.choices?.[0]?.delta?.content;
+                            if (content) {
+                                yield { content };
+                            }
+                        }
+                        catch {
+                        }
+                    }
+                }
+            }
+        }
+        catch (error) {
+            console.error('Fehler bei der Streaming-Kommunikation mit LM Studio:', error.message);
+            yield {
+                content: `Fehler bei der Verbindung mit LM Studio. Stelle sicher, dass der Server läuft. (Details: ${error.message})`,
+                done: true,
+            };
+        }
+    }
 };
 exports.LmStudioEngine = LmStudioEngine;
 exports.LmStudioEngine = LmStudioEngine = __decorate([

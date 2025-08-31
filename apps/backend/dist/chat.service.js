@@ -13,26 +13,46 @@ exports.ChatService = void 0;
 const common_1 = require("@nestjs/common");
 const engine_registry_service_1 = require("./ai-engine/engine-registry.service");
 let ChatService = class ChatService {
-    registry;
-    constructor(registry) {
-        this.registry = registry;
+    engineRegistry;
+    constructor(engineRegistry) {
+        this.engineRegistry = engineRegistry;
     }
-    async handleMessage(provider, payload) {
-        const engine = this.registry.get(provider);
+    sendMessage(payload) {
+        const engine = this.engineRegistry.get(payload.provider);
         if (!engine) {
-            throw new common_1.NotFoundException(`Provider '${provider}' wird nicht unterstützt.`);
+            throw new Error(`Provider ${payload.provider} not supported`);
         }
-        return engine.sendMessage(payload);
+        const chatPayload = {
+            prompt: payload.prompt,
+            apiKey: payload.apiKey,
+            model: payload.model,
+            attachments: payload.attachments,
+        };
+        return engine.sendMessage(chatPayload);
     }
-    getProviders() {
-        return this.registry.getProviders();
-    }
-    async listOpenRouterModels(apiKey) {
-        const engine = this.registry.get('openrouter');
+    async *sendMessageStream(payload) {
+        const engine = this.engineRegistry.get(payload.provider);
         if (!engine) {
-            throw new common_1.NotFoundException(`Provider 'openrouter' wird nicht unterstützt.`);
+            yield {
+                content: `Provider ${payload.provider} not supported`,
+                done: true,
+            };
+            return;
         }
-        return engine.listModels(apiKey);
+        const chatPayload = {
+            prompt: payload.prompt,
+            apiKey: payload.apiKey,
+            model: payload.model,
+            attachments: payload.attachments,
+            stream: true,
+        };
+        if (engine.sendMessageStream) {
+            yield* engine.sendMessageStream(chatPayload);
+        }
+        else {
+            const response = await engine.sendMessage(chatPayload);
+            yield { content: response.content, done: true };
+        }
     }
 };
 exports.ChatService = ChatService;

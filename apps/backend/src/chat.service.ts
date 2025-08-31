@@ -1,35 +1,71 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { ChatPayload, ChatResponse } from './ai-engine/ai-api-engine.base';
+import { Injectable } from '@nestjs/common';
 import { EngineRegistryService } from './ai-engine/engine-registry.service';
-import { OpenRouterEngine, OpenRouterModel } from './ai-engine/openrouter.engine';
+import {
+  ChatPayload,
+  ChatResponse,
+  StreamChunk,
+} from './ai-engine/ai-api-engine.base';
+
+export interface ChatServicePayload {
+  provider: string;
+  prompt: string;
+  apiKey?: string;
+  model?: string;
+  attachments?: {
+    name: string;
+    type: string;
+    base64: string;
+    size: number;
+  }[];
+}
 
 @Injectable()
 export class ChatService {
-  public constructor(private readonly registry: EngineRegistryService) {}
+  constructor(private readonly engineRegistry: EngineRegistryService) {}
 
-  /**
-   * Handles incoming chat messages by selecting an appropriate provider and sending the message.
-   */
-  public async handleMessage(
-    provider: string,
-    payload: ChatPayload,
-  ): Promise<ChatResponse> {
-    const engine = this.registry.get(provider);
+  sendMessage(payload: ChatServicePayload): Promise<ChatResponse> {
+    const engine = this.engineRegistry.get(payload.provider);
     if (!engine) {
-      throw new NotFoundException(`Provider '${provider}' wird nicht unterstützt.`);
+      throw new Error(`Provider ${payload.provider} not supported`);
     }
-    return engine.sendMessage(payload);
+
+    const chatPayload: ChatPayload = {
+      prompt: payload.prompt,
+      apiKey: payload.apiKey,
+      model: payload.model,
+      attachments: payload.attachments,
+    };
+
+    return engine.sendMessage(chatPayload);
   }
 
-  public getProviders(): string[] {
-    return this.registry.getProviders();
-  }
-
-  public async listOpenRouterModels(apiKey: string): Promise<OpenRouterModel[]> {
-    const engine = this.registry.get('openrouter') as OpenRouterEngine | undefined;
+  async *sendMessageStream(
+    payload: ChatServicePayload,
+  ): AsyncIterableIterator<StreamChunk> {
+    const engine = this.engineRegistry.get(payload.provider);
     if (!engine) {
-      throw new NotFoundException(`Provider 'openrouter' wird nicht unterstützt.`);
+      yield {
+        content: `Provider ${payload.provider} not supported`,
+        done: true,
+      };
+      return;
     }
-    return engine.listModels(apiKey);
+
+    const chatPayload: ChatPayload = {
+      prompt: payload.prompt,
+      apiKey: payload.apiKey,
+      model: payload.model,
+      attachments: payload.attachments,
+      stream: true,
+    };
+
+    // Use streaming if available, otherwise fall back to regular message
+    if (engine.sendMessageStream) {
+      yield* engine.sendMessageStream(chatPayload);
+    } else {
+      // Fallback for engines without streaming support
+      const response = await engine.sendMessage(chatPayload);
+      yield { content: response.content, done: true };
+    }
   }
 }

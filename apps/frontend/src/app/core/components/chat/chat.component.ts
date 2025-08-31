@@ -131,12 +131,17 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.messages.push(userMessage);
     this.messages.push({ sender: 'ai', text: '', isLoading: true });
     this.isLoading = true;
-    this.togglePrompt(false);
+
+    // PROBLEM 1 LÖSUNG: Input-Feld sofort zurücksetzen und deaktivieren
+    const promptControl = this.chatForm.get('prompt');
+    const originalPrompt = formValue.prompt;
+    promptControl?.setValue('');
+    promptControl?.disable();
 
     const apiKey = formValue.apiKey || this.settingsService.getApiKey(formValue.provider);
 
     // Modificar den Prompt wenn Canvas oder Live Code aktiviert sind
-    let enhancedPrompt = formValue.prompt;
+    let enhancedPrompt = originalPrompt;
     if (this.chatOptions.canvasEnabled) {
       enhancedPrompt += ' (Por favor, incluye código HTML/CSS/SVG visualizable en tu respuesta)';
     }
@@ -159,13 +164,58 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         : undefined
     };
 
+    // DEBUGGING: Ersten das normale HTTP verwenden statt Streaming
+    console.log('Sending message with payload:', payload);
+
     this.chatService.sendMessage(payload).subscribe({
-      next: (res) => this.handleSuccess(res),
-      error: (err) => this.handleError(err),
+      next: (res) => {
+        console.log('Received response:', res);
+        this.handleSuccess(res);
+      },
+      error: (err) => {
+        console.error('Error occurred:', err);
+        this.handleError(err);
+      },
     });
 
     // Anhänge nach dem Senden löschen
     this.currentAttachments = [];
+  }
+
+  // Neue Methode für Streaming-Chunks
+  private handleStreamChunk(chunk: { content: string; done?: boolean }): void {
+    const lastIndex = this.messages.length - 1;
+    const lastMessage = this.messages[lastIndex];
+
+    if (lastMessage && lastMessage.sender === 'ai') {
+      if (chunk.done) {
+        // Stream ist beendet
+        lastMessage.isLoading = false;
+        const codeInfo = this.extractCodeFromResponse(lastMessage.text);
+        Object.assign(lastMessage, codeInfo);
+        this.isLoading = false;
+        this.togglePrompt(true);
+      } else {
+        // Füge neuen Content zum bestehenden Text hinzu
+        lastMessage.text += chunk.content;
+        lastMessage.isLoading = true; // Zeige weiterhin Loading-Animation
+      }
+    }
+  }
+
+  // Neue Methode für Stream-Completion
+  private handleStreamComplete(): void {
+    const lastIndex = this.messages.length - 1;
+    const lastMessage = this.messages[lastIndex];
+
+    if (lastMessage && lastMessage.sender === 'ai') {
+      lastMessage.isLoading = false;
+      const codeInfo = this.extractCodeFromResponse(lastMessage.text);
+      Object.assign(lastMessage, codeInfo);
+    }
+
+    this.isLoading = false;
+    this.togglePrompt(true);
   }
 
   // Nuevos métodos para Canvas y Live Code
