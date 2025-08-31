@@ -94,10 +94,17 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     );
   }
 
+  /**
+   * Returns true if the given provider requires an API key.
+   * @param provider The provider name
+   */
   public requiresApiKey(provider: string | null | undefined): boolean {
     return provider ? this.providersWithApiKey.includes(provider) : false;
   }
 
+  /**
+   * Angular lifecycle hook. Loads settings and sets up form listeners.
+   */
   public async ngOnInit(): Promise<void> {
     await this.settingsService.load();
 
@@ -138,10 +145,16 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     // Remove the manual message push - this is now handled by ChatService
   }
 
+  /**
+   * Angular lifecycle hook. Unsubscribes from all subscriptions.
+   */
   ngOnDestroy() {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
+  /**
+   * Sends the current message in the chat form.
+   */
   public sendMessage(): void {
     if (this.chatForm.invalid) return;
 
@@ -229,6 +242,10 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.currentAttachments = [];
   }
 
+  /**
+   * Handles a successful response from the chat API.
+   * @param res The API response
+   */
   private handleSuccess(res: ChatApiResponse): void {
     const codeInfo = this.extractCodeFromResponse(res.content);
 
@@ -246,6 +263,10 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.togglePrompt(true);
   }
 
+  /**
+   * Handles an error response from the chat API.
+   * @param err The error object
+   */
   private handleError(err: any): void {
     const errorMessage = `Error: ${err.error?.message || 'Failed to communicate with the backend.'}`;
 
@@ -262,7 +283,10 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.togglePrompt(true);
   }
 
-  // Neue Methode für Streaming-Chunks
+  /**
+   * Handles a streaming chunk from the chat API.
+   * @param chunk The chunk object
+   */
   private handleStreamChunk(chunk: { content: string; done?: boolean }): void {
     const lastIndex = this.messages.length - 1;
     const lastMessage = this.messages[lastIndex];
@@ -285,7 +309,9 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
   }
 
-  // Neue Methode für Stream-Completion
+  /**
+   * Handles the completion of a streaming response from the chat API.
+   */
   private handleStreamComplete(): void {
     const lastIndex = this.messages.length - 1;
     const lastMessage = this.messages[lastIndex];
@@ -300,32 +326,53 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.togglePrompt(true);
   }
 
-  // Nuevos métodos para Canvas y Live Code
+  /**
+   * Toggles the canvas option in chat options.
+   */
   public toggleCanvas(): void {
     this.chatOptions.canvasEnabled = !this.chatOptions.canvasEnabled;
   }
 
+  /**
+   * Toggles the live code option in chat options.
+   */
   public toggleLiveCode(): void {
     this.chatOptions.liveCodeEnabled = !this.chatOptions.liveCodeEnabled;
   }
 
+  /**
+   * Opens the canvas modal dialog.
+   */
   public openCanvasModal(): void {
     this.showCanvasModal = true;
   }
 
+  /**
+   * Closes the canvas modal dialog.
+   */
   public closeCanvasModal(): void {
     this.showCanvasModal = false;
   }
 
+  /**
+   * Opens the live code modal dialog.
+   */
   public openLiveCodeModal(): void {
     this.showLiveCodeModal = true;
   }
 
+  /**
+   * Closes the live code modal dialog.
+   */
   public closeLiveCodeModal(): void {
     this.showLiveCodeModal = false;
   }
 
-  // Método para detectar código en la respuesta de IA
+  /**
+   * Extracts code information from the AI response content.
+   * @param content The response content
+   * @returns Object with code flags and code content
+   */
   private extractCodeFromResponse(content: string): { hasCanvas: boolean; hasLiveCode: boolean; canvasCode?: string; liveCode?: string } {
     const htmlRegex = /```(?:html|svg|xml)([\s\S]*?)```/i;
     const jsRegex = /```(?:javascript|js|ts|typescript)([\s\S]*?)```/i;
@@ -341,12 +388,17 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     };
   }
 
-  /** Invoked after the view has been checked to scroll to the bottom. */
+  /**
+   * Angular lifecycle hook. Scrolls the chat container to the bottom after view check.
+   */
   public ngAfterViewChecked(): void {
     this.scrollToBottom();
   }
 
-  /** Adds a user message and an AI loading message to the messages array and sets isLoading to true. */
+  /**
+   * Adds a user message and an AI loading message to the messages array and sets isLoading to true.
+   * @param prompt The user prompt
+   */
   private addUserAndLoadingMessages(prompt: string): void {
     this.messages.push({
       role: 'user',
@@ -364,6 +416,10 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.isLoading = true;
   }
 
+  /**
+   * Enables or disables the prompt input control.
+   * @param enable True to enable, false to disable
+   */
   private togglePrompt(enable: boolean): void {
     const control = this.chatForm.get('prompt');
     if (enable) {
@@ -374,9 +430,12 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
   }
 
-  // Métodos para manejar eventos desde los mensajes
+  /**
+   * Handles canvas code request from a chat message.
+   * @param code The canvas code
+   */
   public onCanvasRequested(code: string): void {
-    // Actualizar el código del canvas y abrir el modal
+    // Actualizar el c��digo del canvas y abrir el modal
     const lastMessage = this.messages[this.messages.length - 1];
     if (lastMessage) {
       lastMessage.canvasCode = code;
@@ -384,6 +443,10 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.openCanvasModal();
   }
 
+  /**
+   * Handles live code request from a chat message.
+   * @param code The live code
+   */
   public onLiveCodeRequested(code: string): void {
     // Actualizar el código live y abrir el modal
     const lastMessage = this.messages[this.messages.length - 1];
@@ -393,6 +456,9 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.openLiveCodeModal();
   }
 
+  /**
+   * Loads OpenRouter models from the API.
+   */
   private loadOpenRouterModels(): void {
     const apiKey =
       this.chatForm.get('apiKey')?.value || this.settingsService.getApiKey('openrouter');
@@ -410,6 +476,10 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     });
   }
 
+  /**
+   * Filters OpenRouter models for the selected provider.
+   * @param provider The provider name
+   */
   private filterModelsForProvider(provider: string): void {
     this.filteredOpenRouterModels = this.openRouterModels.filter(
       (m) => m.top_provider.id === provider,
@@ -422,7 +492,9 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
   }
 
-  /** Scrolls the chat container to the bottom. */
+  /**
+   * Scrolls the chat container to the bottom.
+   */
   private scrollToBottom(): void {
     const container = this.chatContainer?.nativeElement;
     if (container) {
@@ -430,16 +502,90 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
   }
 
-  // File upload event handlers
+  /**
+   * Handles file attachment changes from the file upload component.
+   * @param attachments The new attachments
+   */
   public onAttachmentsChange(attachments: ChatAttachment[]): void {
     this.currentAttachments = attachments;
   }
 
+  /**
+   * Handles file upload errors from the file upload component.
+   * @param error The error message
+   */
   public onUploadError(error: string): void {
     this.uploadError = error;
-    // Fehler nach 5 Sekunden automatisch ausblenden
+    // Hide error after 5 seconds automatically
     setTimeout(() => {
       this.uploadError = '';
     }, 5000);
+  }
+
+  /**
+   * Automatically adjusts the height of the textarea based on its content.
+   * Maximum of 4 lines, then scroll appears.
+   * @param event The input event
+   */
+  public adjustTextareaHeight(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    const lineHeight = 1.5; // rem
+    const minHeight = 2.5; // rem - altura mínima (1 línea)
+    const maxHeight = 6; // rem - altura máxima (4 líneas)
+
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+
+    // Calculate required height based on scroll height
+    const scrollHeight = textarea.scrollHeight;
+    const remInPixels = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const requiredHeight = scrollHeight / remInPixels;
+
+    // Set height with min/max constraints
+    if (requiredHeight <= maxHeight) {
+      textarea.style.height = Math.max(requiredHeight, minHeight) + 'rem';
+      textarea.style.overflowY = 'hidden';
+    } else {
+      textarea.style.height = maxHeight + 'rem';
+      textarea.style.overflowY = 'auto';
+    }
+  }
+
+  /**
+   * Handles keyboard events in the textarea.
+   * Enter: Sends the message
+   * Alt+Enter: New line
+   * Shift+Enter: New line
+   * @param event The keyboard event
+   */
+  public onTextareaKeydown(event: KeyboardEvent): void {
+
+    // If Shift+Enter, allow new line
+    if(event.shiftKey) {
+      return;
+    }
+
+
+    if (event.key === 'Enter') {
+      if (event.altKey) {
+        // Alt+Enter: Allow new line - do not prevent default
+        console.log('Alt+Enter detected - allowing new line');
+        return;
+      } else {
+        // Enter only: Send message - prevent new line and send
+        console.log('Enter only detected - sending message');
+        event.preventDefault();
+        if (!this.chatForm.invalid && !this.isLoading) {
+          this.sendMessage();
+          // Refocus textarea after sending
+          setTimeout(() => {
+            const textarea = event.target as HTMLTextAreaElement;
+            textarea.focus();
+            // Reset height after clearing
+            textarea.style.height = '2.5rem';
+          }, 0);
+        }
+      }
+    }
   }
 }

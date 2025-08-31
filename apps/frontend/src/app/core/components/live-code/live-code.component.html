@@ -2,8 +2,75 @@
   <div class="flex bg-gray-100 border-b">
     <div class="flex-1 px-4 py-2 font-medium text-sm text-gray-700">
       Code Editor ({{ language }})
+      <span *ngIf="currentSession" class="text-xs text-gray-500 ml-2">
+        - {{ currentSession.title }}
+      </span>
     </div>
-    <div class="px-4 py-2">
+
+    <!-- Session Menu -->
+    <div class="relative px-2 py-2">
+      <button
+        (click)="toggleSessionMenu()"
+        class="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+        Sessions ({{ sessions.length }})
+      </button>
+
+      <!-- Sessions Dropdown -->
+      <div *ngIf="showSessionMenu"
+           class="absolute right-0 mt-1 w-80 bg-white rounded-md shadow-lg z-50 border">
+        <div class="py-1 max-h-64 overflow-y-auto">
+          <div class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 border-b">
+            Code Sessions (Auto-saved)
+          </div>
+
+          <!-- New Session Button -->
+          <button
+            (click)="createNewSession()"
+            class="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 border-b">
+            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Nueva Sesión
+          </button>
+
+          <!-- Session List -->
+          <div *ngFor="let session of sessions"
+               class="flex items-center justify-between px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
+               [class.bg-blue-50]="currentSession?.id === session.id"
+               (click)="loadSession(session)">
+            <div class="flex-1 min-w-0">
+              <div class="font-medium text-gray-900 truncate">{{ session.title }}</div>
+              <div class="text-xs text-gray-500 truncate">
+                {{ formatDate(session.updatedAt) }} • {{ session.language }}
+              </div>
+              <div class="text-xs text-gray-400 truncate mt-1">
+                {{ getSessionPreview(session) }}
+              </div>
+            </div>
+
+            <!-- Delete Button -->
+            <button
+              (click)="deleteSession(session.id, $event)"
+              class="ml-2 p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+              title="Eliminar sesión">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Empty state -->
+          <div *ngIf="sessions.length === 0" class="px-3 py-4 text-sm text-gray-500 text-center">
+            No hay sesiones guardadas
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-2 py-2">
       <button
         (click)="runCode()"
         [disabled]="isRunning"
@@ -11,6 +78,14 @@
         {{ isRunning ? 'Running...' : 'Run' }}
       </button>
     </div>
+  </div>
+
+  <!-- Auto-save indicator -->
+  <div *ngIf="currentSession" class="px-4 py-1 bg-green-50 border-b text-xs text-green-700">
+    <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+    </svg>
+    Auto-guardado activado • Última actualización: {{ formatDate(currentSession.updatedAt) }}
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-2 min-h-[300px]">
@@ -48,4 +123,3 @@
     </div>
   </div>
 </div>
-
