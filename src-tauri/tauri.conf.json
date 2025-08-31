@@ -7,7 +7,7 @@
     "frontendDist": "../apps/frontend/dist/frontend",
     "devUrl": "http://localhost:4200",
     "beforeDevCommand": "npm run dev:frontend",
-    "beforeBuildCommand": "npm run build:frontend"
+    "beforeBuildCommand": "npm run build:frontend && ./scripts/build-backend.sh"
   },
   "app": {
     "windows": [
