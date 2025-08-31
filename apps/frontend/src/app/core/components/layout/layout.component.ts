@@ -42,15 +42,15 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
-  newChat() {
+  public newChat() {
     this.chatService.requestNewChat();
   }
 
-  switchToChat(chatId: string) {
+  public switchToChat(chatId: string) {
     this.chatService.switchToChat(chatId);
   }
 
-  async deleteChat(chatId: string, event: Event): Promise<void> {
+  public async deleteChat(chatId: string, event: Event): Promise<void> {
     // Prevent the click from bubbling up to the parent (which would switch to the chat)
     event.stopPropagation();
 

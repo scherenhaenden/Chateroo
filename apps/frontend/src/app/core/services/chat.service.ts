@@ -67,39 +67,32 @@ export class ChatService {
   private async initializeChats(): Promise<void> {
     if (this.isInitialized) return;
 
-    if (this.isInitialized) return;
-      // Ensure the storage service is ready
-      await this.chatStorage.getAllSessions();
-
-      // Get saved sessions
     try {
+      // Get saved sessions
+      const savedSessions = await this.chatStorage.getAllSessions();
       console.log('Loaded saved sessions:', savedSessions.length);
-      // Subscribe to saved sessions ONLY ONCE
-      this.chatStorage.sessions$.subscribe(savedSessions => {
-        if (!this.isInitialized) {
-          this.isInitialized = true;
 
-          if (savedSessions.length > 0) {
-            // Load existing sessions
-            this.chatSessions = savedSessions;
-            this.chatSessionsSubject.next([...this.chatSessions]);
+      if (savedSessions.length > 0) {
+        // Load existing sessions
+        this.chatSessions = savedSessions;
+        this.chatSessionsSubject.next([...this.chatSessions]);
+
+        // Set current chat to most recent
+        this.currentChatId = savedSessions[0].id;
+        this.currentChatSubject.next(savedSessions[0]);
         console.log('Loaded current chat:', savedSessions[0].title);
-
-            // Set current chat to most recent
+      } else {
+        // Create first chat only if no sessions exist
         console.log('No saved sessions found, creating first chat');
-            this.currentChatId = savedSessions[0].id;
-            this.currentChatSubject.next(savedSessions[0]);
-          } else {
-            // Create first chat only if no sessions exist
-            this.createFirstChat();
-          }
-        }
-      });
+        this.createFirstChat();
+      }
+
+      this.isInitialized = true;
     } catch (error) {
       console.error('Error initializing chats:', error);
       if (!this.isInitialized) {
-        this.isInitialized = true;
         this.createFirstChat();
+        this.isInitialized = true;
       }
     }
   }
