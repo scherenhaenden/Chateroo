@@ -1,25 +1,5 @@
 <div #chatContainer class="flex-1 p-6 overflow-y-auto space-y-4">
-  <div *ngFor="let message of messages" class="flex" [ngClass]="{'justify-end': message.sender === 'user', 'justify-start': message.sender === 'ai'}">
-    <div class="max-w-2xl p-3 rounded-lg shadow-md" [ngClass]="{'bg-blue-500 text-white': message.sender === 'user', 'bg-white text-gray-800': message.sender === 'ai'}">
-      <div *ngIf="!message.isLoading">
-        <ng-container *ngFor="let segment of parseSegments(message.text)">
-          <app-copy-box
-            *ngIf="segment.type === 'code'; else textSeg"
-            [content]="segment.content"
-            [language]="segment.language"
-          ></app-copy-box>
-          <ng-template #textSeg>
-            <div class="markdown-content" [innerHTML]="renderMarkdown(segment.content)"></div>
-          </ng-template>
-        </ng-container>
-      </div>
-      <div *ngIf="message.isLoading" class="flex items-center space-x-2">
-          <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-          <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-          <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
-      </div>
-    </div>
-  </div>
+  <app-chat-message *ngFor="let message of messages" [message]="message"></app-chat-message>
 </div>
 <div class="p-4 bg-white border-t border-gray-200">
   <form [formGroup]="chatForm" (ngSubmit)="sendMessage()" class="flex items-center space-x-4">
@@ -48,11 +28,8 @@
 
     <input formControlName="prompt" type="text" placeholder="Type your message..." class="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
 
-    <button type="submit"
-    [disabled]="chatForm.invalid || isLoading"
-    class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors">
+    <button type="submit" [disabled]="chatForm.invalid || isLoading" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors">
       Send
     </button>
   </form>
 </div>
-

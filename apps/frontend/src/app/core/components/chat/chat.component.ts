@@ -1,7 +1,7 @@
 import { Component, OnInit, AfterViewChecked, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { CopyBoxComponent } from '../copy-box/copy-box.component';
+import { ChatMessageComponent } from '../chat-message/chat-message.component';
 
 import {
   ChatService,
@@ -11,13 +11,11 @@ import {
 } from '../../services/chat.service';
 import { SettingsService } from '../../services/settings.service';
 import { ChatMessage } from '../../../models/chat.model';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, CopyBoxComponent],
+  imports: [CommonModule, ReactiveFormsModule, ChatMessageComponent],
   templateUrl: './chat.component.html',
   host: { class: 'flex flex-col flex-1 min-h-0' },
 })
@@ -87,11 +85,9 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       modelControl?.updateValueAndValidity();
     });
 
-    this.chatForm
-      .get('openRouterProvider')
-      ?.valueChanges.subscribe((prov) => {
-        this.filterModelsForProvider(prov);
-      });
+    this.chatForm.get('openRouterProvider')?.valueChanges.subscribe((prov) => {
+      this.filterModelsForProvider(prov);
+    });
 
     this.chatForm.get('apiKey')?.valueChanges.subscribe(() => {
       if (this.chatForm.get('provider')?.value === 'openrouter') {
@@ -117,8 +113,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       provider: formValue.provider,
       prompt: formValue.prompt,
       apiKey: apiKey || undefined,
-      model:
-        formValue.provider === 'openrouter' ? formValue.model : undefined,
+      model: formValue.provider === 'openrouter' ? formValue.model : undefined,
     };
 
     this.chatService.sendMessage(payload).subscribe({
@@ -127,47 +122,12 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     });
   }
 
-  /**
-   * Invoked after the view has been checked to scroll to the bottom.
-   */
+  /** Invoked after the view has been checked to scroll to the bottom. */
   public ngAfterViewChecked(): void {
     this.scrollToBottom();
   }
 
-  /**
-   * Converts markdown text to sanitized HTML.
-   * @param text The raw markdown text from the LLM.
-   */
-  public renderMarkdown(text: string): string {
-    const rawHtml = marked.parse(text);
-    const sanitizedHtml = DOMPurify.sanitize(rawHtml as string);
-    return sanitizedHtml;
-  }
-
-  /**
-   * Splits a message into text and code segments for specialized rendering.
-   */
-  public parseSegments(text: string): Array<{ type: 'text' | 'code'; content: string; language?: string }> {
-    const segments: Array<{ type: 'text' | 'code'; content: string; language?: string }> = [];
-    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-    let lastIndex = 0;
-    let match: RegExpExecArray | null;
-    while ((match = codeBlockRegex.exec(text)) !== null) {
-      if (match.index > lastIndex) {
-        segments.push({ type: 'text', content: text.slice(lastIndex, match.index) });
-      }
-      segments.push({ type: 'code', language: match[1] || '', content: match[2] });
-      lastIndex = codeBlockRegex.lastIndex;
-    }
-    if (lastIndex < text.length) {
-      segments.push({ type: 'text', content: text.slice(lastIndex) });
-    }
-    return segments;
-  }
-
-  /**
-   * Adds a user message and an AI loading message to the messages array and sets isLoading to true.
-   */
+  /** Adds a user message and an AI loading message to the messages array and sets isLoading to true. */
   private addUserAndLoadingMessages(prompt: string): void {
     this.messages.push({ sender: 'user', text: prompt });
     this.messages.push({ sender: 'ai', text: '', isLoading: true });
@@ -201,8 +161,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   private loadOpenRouterModels(): void {
     const apiKey =
-      this.chatForm.get('apiKey')?.value ||
-      this.settingsService.getApiKey('openrouter');
+      this.chatForm.get('apiKey')?.value || this.settingsService.getApiKey('openrouter');
     if (!apiKey) return;
     this.chatService.getOpenRouterModels(apiKey).subscribe((models) => {
       this.openRouterModels = models;
@@ -229,9 +188,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     }
   }
 
-  /**
-   * Scrolls the chat container to the bottom.
-   */
+  /** Scrolls the chat container to the bottom. */
   private scrollToBottom(): void {
     const container = this.chatContainer?.nativeElement;
     if (container) {

@@ -11,13 +11,9 @@
   </div>
 
   <div *ngIf="isEditing; else viewMode">
-    <textarea [(ngModel)]="editableContent" (input)="updatePreview()" class="w-full p-2 font-mono text-sm max-h-64 overflow-auto"></textarea>
+    <textarea [(ngModel)]="editableContent" (input)="onInput()" class="w-full p-2 font-mono text-sm max-h-64 overflow-auto"></textarea>
   </div>
   <ng-template #viewMode>
     <pre class="p-2 text-sm max-h-64 overflow-auto"><code>{{ content }}</code></pre>
   </ng-template>
-
-  <div *ngIf="renderable" class="border-t">
-    <iframe class="w-full h-64" [srcdoc]="iframeContent" sandbox="allow-scripts"></iframe>
-  </div>
 </div>
