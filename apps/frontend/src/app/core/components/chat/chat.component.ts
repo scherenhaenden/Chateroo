@@ -2,7 +2,12 @@ import { Component, OnInit, AfterViewChecked, ElementRef, ViewChild } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 
-import { ChatService, SendMessagePayload, ChatApiResponse } from '../../services/chat.service';
+import {
+  ChatService,
+  SendMessagePayload,
+  ChatApiResponse,
+  OpenRouterModel,
+} from '../../services/chat.service';
 import { SettingsService } from '../../services/settings.service';
 import { ChatMessage } from '../../../models/chat.model';
 import { marked } from 'marked';
@@ -20,6 +25,10 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   public messages: ChatMessage[] = [];
   public isLoading = false;
 
+  public openRouterProviders: string[] = [];
+  private openRouterModels: OpenRouterModel[] = [];
+  public filteredOpenRouterModels: OpenRouterModel[] = [];
+
   @ViewChild('chatContainer') private chatContainer!: ElementRef<HTMLDivElement>;
 
   private readonly providersWithApiKey = [
@@ -29,6 +38,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     'perplexity',
     'grok',
     'deepseek',
+    'openrouter',
   ];
 
   public constructor(
@@ -38,6 +48,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   ) {
     this.chatForm = this.fb.group({
       provider: ['lm-studio', Validators.required],
+      openRouterProvider: [''],
+      model: [''],
       apiKey: [''],
       prompt: ['', Validators.required],
     });
@@ -52,12 +64,38 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
     this.chatForm.get('provider')?.valueChanges.subscribe((provider) => {
       const apiKeyControl = this.chatForm.get('apiKey');
+      const orProviderControl = this.chatForm.get('openRouterProvider');
+      const modelControl = this.chatForm.get('model');
+
       if (this.providersWithApiKey.includes(provider)) {
         apiKeyControl?.setValidators([Validators.required]);
       } else {
         apiKeyControl?.clearValidators();
       }
       apiKeyControl?.updateValueAndValidity();
+
+      if (provider === 'openrouter') {
+        orProviderControl?.setValidators([Validators.required]);
+        modelControl?.setValidators([Validators.required]);
+        void this.loadOpenRouterModels();
+      } else {
+        orProviderControl?.clearValidators();
+        modelControl?.clearValidators();
+      }
+      orProviderControl?.updateValueAndValidity();
+      modelControl?.updateValueAndValidity();
+    });
+
+    this.chatForm
+      .get('openRouterProvider')
+      ?.valueChanges.subscribe((prov) => {
+        this.filterModelsForProvider(prov);
+      });
+
+    this.chatForm.get('apiKey')?.valueChanges.subscribe(() => {
+      if (this.chatForm.get('provider')?.value === 'openrouter') {
+        this.loadOpenRouterModels();
+      }
     });
 
     this.messages.push({
@@ -78,6 +116,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       provider: formValue.provider,
       prompt: formValue.prompt,
       apiKey: apiKey || undefined,
+      model:
+        formValue.provider === 'openrouter' ? formValue.model : undefined,
     };
 
     this.chatService.sendMessage(payload).subscribe({
@@ -135,6 +175,36 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.messages[lastIndex] = { sender: 'ai', text: errorMessage };
     this.isLoading = false;
     this.togglePrompt(true);
+  }
+
+  private loadOpenRouterModels(): void {
+    const apiKey =
+      this.chatForm.get('apiKey')?.value ||
+      this.settingsService.getApiKey('openrouter');
+    if (!apiKey) return;
+    this.chatService.getOpenRouterModels(apiKey).subscribe((models) => {
+      this.openRouterModels = models;
+      this.openRouterProviders = Array.from(
+        new Set(models.map((m) => m.top_provider.id)),
+      );
+      const providerControl = this.chatForm.get('openRouterProvider');
+      if (this.openRouterProviders.length > 0) {
+        providerControl?.setValue(this.openRouterProviders[0]);
+        this.filterModelsForProvider(this.openRouterProviders[0]);
+      }
+    });
+  }
+
+  private filterModelsForProvider(provider: string): void {
+    this.filteredOpenRouterModels = this.openRouterModels.filter(
+      (m) => m.top_provider.id === provider,
+    );
+    const modelControl = this.chatForm.get('model');
+    if (this.filteredOpenRouterModels.length > 0) {
+      modelControl?.setValue(this.filteredOpenRouterModels[0].id);
+    } else {
+      modelControl?.setValue('');
+    }
   }
 
   /**

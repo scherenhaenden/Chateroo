@@ -1,6 +1,7 @@
-import { Controller, Post, Body, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { ChatPayload, ChatResponse } from './ai-engine/ai-api-engine.base';
+import { OpenRouterModel } from './ai-engine/openrouter.engine';
 
 // This class defines the shape of the data coming from the frontend.
 class ChatRequestDto implements ChatPayload {
@@ -21,5 +22,12 @@ export class ChatController {
   public sendMessage(@Body() requestDto: ChatRequestDto): Promise<ChatResponse> {
     const { provider, ...payload } = requestDto;
     return this.chatService.handleMessage(provider, payload);
+  }
+
+  @Get('openrouter/models')
+  public listOpenRouterModels(
+    @Query('apiKey') apiKey: string,
+  ): Promise<OpenRouterModel[]> {
+    return this.chatService.listOpenRouterModels(apiKey);
   }
 }

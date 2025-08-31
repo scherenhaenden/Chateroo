@@ -19,6 +19,7 @@ export class SettingsComponent implements OnInit {
   ) {
     this.settingsForm = this.fb.group({
       openAiApiKey: [''],
+      openRouterApiKey: [''],
     });
   }
 
@@ -27,6 +28,7 @@ export class SettingsComponent implements OnInit {
     const currentSettings = this.settingsService.getSettings();
     this.settingsForm.patchValue({
       openAiApiKey: currentSettings.openAiApiKey || '',
+      openRouterApiKey: currentSettings.openRouterApiKey || '',
     });
   }
 
