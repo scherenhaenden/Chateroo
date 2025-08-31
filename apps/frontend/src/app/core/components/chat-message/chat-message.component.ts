@@ -38,8 +38,31 @@ export class ChatMessageComponent implements OnInit {
   }
 
   public renderMarkdown(text: string): string {
+    // Si el texto contiene HTML que no está en bloques de código, preservarlo
+    if (this.containsRawHTML(text)) {
+      // Escapar el HTML para mostrarlo como texto plano
+      return this.escapeHtml(text);
+    }
+
     const rawHtml = marked.parse(text);
     return DOMPurify.sanitize(rawHtml as string);
+  }
+
+  private containsRawHTML(text: string): boolean {
+    // Verificar si hay etiquetas HTML que no están dentro de bloques de código
+    const htmlTagRegex = /<[^>]+>/;
+    const codeBlockRegex = /```[\s\S]*?```/g;
+
+    // Remover bloques de código del texto para verificar HTML fuera de ellos
+    const textWithoutCodeBlocks = text.replace(codeBlockRegex, '');
+
+    return htmlTagRegex.test(textWithoutCodeBlocks);
+  }
+
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   private parseSegments(text: string): Segment[] {

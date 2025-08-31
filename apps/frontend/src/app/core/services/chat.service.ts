@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject, BehaviorSubject } from 'rxjs';
 import { ChatSession, ChatMessage } from '../../models/chat.model';
+import { ChatSessionStorageService } from './chat-session-storage.service';
 
 export interface SendMessagePayload {
   provider: string;
@@ -46,13 +47,84 @@ export class ChatService {
   private chatSessionsSubject = new BehaviorSubject<ChatSession[]>([]);
   private currentChatSubject = new BehaviorSubject<ChatSession | null>(null);
 
+  // Flag to prevent multiple initializations
+  private isInitialized = false;
+
   public newChatRequested$ = this.newChatSubject.asObservable();
   public chatSessions$ = this.chatSessionsSubject.asObservable();
   public currentChat$ = this.currentChatSubject.asObservable();
 
-  public constructor(private http: HttpClient) {
-    // Initialize with first chat
-    this.createNewChat();
+  public constructor(
+    private http: HttpClient,
+    private chatStorage: ChatSessionStorageService
+  ) {
+    // Wait a bit to ensure IndexedDB is ready, then initialize
+    setTimeout(() => {
+      this.initializeChats();
+    }, 100);
+  }
+
+  private async initializeChats(): Promise<void> {
+    if (this.isInitialized) return;
+
+    if (this.isInitialized) return;
+      // Ensure the storage service is ready
+      await this.chatStorage.getAllSessions();
+
+      // Get saved sessions
+    try {
+      console.log('Loaded saved sessions:', savedSessions.length);
+      // Subscribe to saved sessions ONLY ONCE
+      this.chatStorage.sessions$.subscribe(savedSessions => {
+        if (!this.isInitialized) {
+          this.isInitialized = true;
+
+          if (savedSessions.length > 0) {
+            // Load existing sessions
+            this.chatSessions = savedSessions;
+            this.chatSessionsSubject.next([...this.chatSessions]);
+        console.log('Loaded current chat:', savedSessions[0].title);
+
+            // Set current chat to most recent
+        console.log('No saved sessions found, creating first chat');
+            this.currentChatId = savedSessions[0].id;
+            this.currentChatSubject.next(savedSessions[0]);
+          } else {
+            // Create first chat only if no sessions exist
+            this.createFirstChat();
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error initializing chats:', error);
+      if (!this.isInitialized) {
+        this.isInitialized = true;
+        this.createFirstChat();
+      }
+    }
+  }
+
+  private createFirstChat(): void {
+    const firstChat: ChatSession = {
+      id: this.generateChatId(),
+      title: 'New Chat',
+      messages: [{
+        role: 'assistant',
+        content: 'Welcome! Select a provider and ask a question.',
+        sender: 'ai',
+        text: 'Welcome! Select a provider and ask a question.'
+      }],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    this.chatSessions = [firstChat];
+    this.currentChatId = firstChat.id;
+    this.chatSessionsSubject.next([...this.chatSessions]);
+    this.currentChatSubject.next(firstChat);
+
+    // Save to IndexedDB
+    this.chatStorage.saveSession(firstChat);
   }
 
   public createNewChat(): ChatSession {
@@ -74,6 +146,9 @@ export class ChatService {
     this.currentChatId = newChat.id;
     this.chatSessionsSubject.next([...this.chatSessions]);
     this.currentChatSubject.next(newChat);
+
+    // Save to IndexedDB
+    this.chatStorage.saveSession(newChat);
 
     return newChat;
   }
@@ -115,6 +190,9 @@ export class ChatService {
 
       this.chatSessionsSubject.next([...this.chatSessions]);
       this.currentChatSubject.next(currentChat);
+
+      // AUTO-SAVE: Save to IndexedDB whenever a message is added
+      this.chatStorage.saveSession(currentChat);
     }
   }
 
@@ -128,7 +206,31 @@ export class ChatService {
       currentChat.updatedAt = new Date();
       this.chatSessionsSubject.next([...this.chatSessions]);
       this.currentChatSubject.next({ ...currentChat });
+
+      // AUTO-SAVE: Save to IndexedDB whenever a message is updated
+      this.chatStorage.saveSession(currentChat);
     }
+  }
+
+  /**
+   * Deletes a chat session by ID
+   */
+  public async deleteChat(chatId: string): Promise<void> {
+    // Remove from memory
+    this.chatSessions = this.chatSessions.filter(chat => chat.id !== chatId);
+    this.chatSessionsSubject.next([...this.chatSessions]);
+
+    // If we deleted the current chat, switch to another or create new one
+    if (this.currentChatId === chatId) {
+      if (this.chatSessions.length > 0) {
+        this.switchToChat(this.chatSessions[0].id);
+      } else {
+        this.createNewChat();
+      }
+    }
+
+    // Remove from IndexedDB
+    await this.chatStorage.deleteSession(chatId);
   }
 
   public requestNewChat(): void {

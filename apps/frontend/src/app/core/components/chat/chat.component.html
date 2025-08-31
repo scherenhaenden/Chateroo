@@ -127,7 +127,15 @@
 
     <input formControlName="apiKey" *ngIf="requiresApiKey(chatForm.get('provider')?.value)" type="password" placeholder="API Key..." class="p-2 border rounded-md flex-shrink w-1/4 focus:outline-none focus:ring-2 focus:ring-blue-500">
 
-    <input formControlName="prompt" type="text" placeholder="Type your message..." class="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <textarea
+      formControlName="prompt"
+      placeholder="Type your message..."
+      class="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-y-auto"
+      style="min-height: 2.5rem; max-height: 6rem; line-height: 1.5rem;"
+      rows="1"
+      (input)="adjustTextareaHeight($event)"
+      (keydown)="onTextareaKeydown($event)">
+    </textarea>
 
     <button type="submit" [disabled]="chatForm.invalid || isLoading" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors">
       Send
