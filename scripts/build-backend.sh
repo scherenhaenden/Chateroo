@@ -40,13 +40,14 @@ cp package.json "$BIN_DIR/"
 cp -r node_modules "$BIN_DIR/" 2>/dev/null || echo "Node modules will be installed in production"
 
 # Create a startup script with the expected tauri naming convention
-cat > "$BIN_DIR/backend-$TARGET" << 'EOF'
+# The name should match what's configured in tauri.conf.json ("binaries/backend")
+cat > "$BIN_DIR/backend" << 'EOF'
 #!/bin/bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$DIR"
 node backend-dist/main.js
 EOF
 
-chmod +x "$BIN_DIR/backend-$TARGET"
+chmod +x "$BIN_DIR/backend"
 
-echo "Backend binary prepared for bundling ($BIN_DIR/backend-$TARGET)"
+echo "Backend binary prepared for bundling ($BIN_DIR/backend)"
