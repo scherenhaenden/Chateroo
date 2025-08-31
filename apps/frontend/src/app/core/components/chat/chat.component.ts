@@ -74,10 +74,8 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     // IMPORTANT: Subscribe to currentChat$ in constructor to catch all updates
     this.subscriptions.push(
       this.chatService.currentChat$.subscribe(chat => {
-        console.log('ChatComponent: Current chat changed:', chat);
         this.currentChat = chat;
         if (chat) {
-          console.log('ChatComponent: Setting messages:', chat.messages);
           this.messages = [...chat.messages]; // Create new array reference
         } else {
           this.messages = [];
