@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Get, Query } from '@nestjs/common';
 import { ChatService } from './chat.service';
-import { ChatPayload, ChatResponse } from './ai-engine/ai-api-engine.base';
+import { ChatPayload, ChatResponse, ChatAttachment } from './ai-engine/ai-api-engine.base';
 import { OpenRouterModel } from './ai-engine/openrouter.engine';
 
 // This class defines the shape of the data coming from the frontend.
@@ -9,6 +9,7 @@ class ChatRequestDto implements ChatPayload {
   public prompt: string;
   public apiKey?: string;
   public model?: string;
+  public attachments?: ChatAttachment[];
 }
 
 @Controller('api/chat')

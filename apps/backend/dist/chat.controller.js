@@ -20,6 +20,7 @@ class ChatRequestDto {
     prompt;
     apiKey;
     model;
+    attachments;
 }
 let ChatController = class ChatController {
     chatService;

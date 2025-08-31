@@ -1,6 +1,9 @@
 <div class="flex" [ngClass]="{'justify-end': message.sender === 'user', 'justify-start': message.sender === 'ai'}">
   <div class="max-w-2xl p-3 rounded-lg shadow-md" [ngClass]="{'bg-blue-500 text-white': message.sender === 'user', 'bg-white text-gray-800': message.sender === 'ai'}">
     <div *ngIf="!message.isLoading">
+      <!-- Attachments Display -->
+      <app-attachment-display [attachments]="message.attachments"></app-attachment-display>
+
       <ng-container *ngFor="let segment of segments">
         <ng-container *ngIf="segment.type === 'code'; else textSeg">
           <app-copy-box

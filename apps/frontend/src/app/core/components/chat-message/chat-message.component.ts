@@ -2,6 +2,7 @@ import { Component, Input, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CopyBoxComponent } from '../copy-box/copy-box.component';
 import { CanvasComponent } from '../canvas/canvas.component';
+import { AttachmentDisplayComponent } from '../attachment-display/attachment-display.component';
 import { ChatMessage } from '../../../models/chat.model';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -22,7 +23,7 @@ type Segment = TextSegment | CodeSegment;
 @Component({
   selector: 'app-chat-message',
   standalone: true,
-  imports: [CommonModule, CopyBoxComponent, CanvasComponent],
+  imports: [CommonModule, CopyBoxComponent, CanvasComponent, AttachmentDisplayComponent],
   templateUrl: './chat-message.component.html',
 })
 export class ChatMessageComponent implements OnInit {

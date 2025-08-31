@@ -1,7 +1,15 @@
+export interface ChatAttachment {
+  name: string;
+  type: string;
+  base64: string;
+  size: number;
+}
+
 export interface ChatPayload {
   prompt: string;
   apiKey?: string;
   model?: string;
+  attachments?: ChatAttachment[];
   // Zukünftige Optionen wie temperature, etc. können hier hinzugefügt werden
 }
 

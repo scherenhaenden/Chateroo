@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { ChatMessageComponent } from '../chat-message/chat-message.component';
 import { CanvasComponent } from '../canvas/canvas.component';
 import { LiveCodeComponent } from '../live-code/live-code.component';
+import { FileUploadComponent } from '../file-upload/file-upload.component';
 
 import {
   ChatService,
@@ -12,12 +13,12 @@ import {
   OpenRouterModel,
 } from '../../services/chat.service';
 import { SettingsService } from '../../services/settings.service';
-import { ChatMessage, ChatOptions } from '../../../models/chat.model';
+import { ChatMessage, ChatOptions, ChatAttachment } from '../../../models/chat.model';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ChatMessageComponent, CanvasComponent, LiveCodeComponent],
+  imports: [CommonModule, ReactiveFormsModule, ChatMessageComponent, CanvasComponent, LiveCodeComponent, FileUploadComponent],
   templateUrl: './chat.component.html',
   host: { class: 'flex flex-col flex-1 min-h-0' },
 })
@@ -37,6 +38,10 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   public openRouterProviders: string[] = [];
   private openRouterModels: OpenRouterModel[] = [];
   public filteredOpenRouterModels: OpenRouterModel[] = [];
+
+  // File upload properties
+  public currentAttachments: ChatAttachment[] = [];
+  public uploadError: string = '';
 
   @ViewChild('chatContainer') private chatContainer!: ElementRef<HTMLDivElement>;
 
@@ -115,12 +120,22 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     if (this.chatForm.invalid) return;
 
     const formValue = this.chatForm.value;
-    this.addUserAndLoadingMessages(formValue.prompt);
+
+    // Erstelle Benutzer-Nachricht mit Anhängen
+    const userMessage: ChatMessage = {
+      sender: 'user',
+      text: formValue.prompt,
+      attachments: this.currentAttachments.length > 0 ? [...this.currentAttachments] : undefined
+    };
+
+    this.messages.push(userMessage);
+    this.messages.push({ sender: 'ai', text: '', isLoading: true });
+    this.isLoading = true;
     this.togglePrompt(false);
 
     const apiKey = formValue.apiKey || this.settingsService.getApiKey(formValue.provider);
 
-    // Modificar el prompt si Canvas o Live Code están habilitados
+    // Modificar den Prompt wenn Canvas oder Live Code aktiviert sind
     let enhancedPrompt = formValue.prompt;
     if (this.chatOptions.canvasEnabled) {
       enhancedPrompt += ' (Por favor, incluye código HTML/CSS/SVG visualizable en tu respuesta)';
@@ -134,12 +149,23 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       prompt: enhancedPrompt,
       apiKey: apiKey || undefined,
       model: formValue.provider === 'openrouter' ? formValue.model : undefined,
+      attachments: this.currentAttachments.length > 0
+        ? this.currentAttachments.map(att => ({
+            name: att.name,
+            type: att.type,
+            base64: att.base64!,
+            size: att.size
+          }))
+        : undefined
     };
 
     this.chatService.sendMessage(payload).subscribe({
       next: (res) => this.handleSuccess(res),
       error: (err) => this.handleError(err),
     });
+
+    // Anhänge nach dem Senden löschen
+    this.currentAttachments = [];
   }
 
   // Nuevos métodos para Canvas y Live Code
@@ -280,5 +306,18 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     if (container) {
       container.scrollTop = container.scrollHeight;
     }
+  }
+
+  // File upload event handlers
+  public onAttachmentsChange(attachments: ChatAttachment[]): void {
+    this.currentAttachments = attachments;
+  }
+
+  public onUploadError(error: string): void {
+    this.uploadError = error;
+    // Fehler nach 5 Sekunden automatisch ausblenden
+    setTimeout(() => {
+      this.uploadError = '';
+    }, 5000);
   }
 }

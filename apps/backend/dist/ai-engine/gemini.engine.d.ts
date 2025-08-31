@@ -6,4 +6,6 @@ export declare class GeminiEngine extends AiApiEngine {
     private readonly apiUrl;
     constructor(httpService: HttpService);
     sendMessage(payload: ChatPayload): Promise<ChatResponse>;
+    private formatFileSize;
+    private isTextFile;
 }

@@ -90,6 +90,20 @@
   </div>
 
   <form [formGroup]="chatForm" (ngSubmit)="sendMessage()" class="flex items-center space-x-4">
+    <!-- File Upload Component -->
+    <app-file-upload
+      (attachmentsChange)="onAttachmentsChange($event)"
+      (error)="onUploadError($event)"
+      [acceptedTypes]="'image/*,.pdf,.txt,.doc,.docx,.json,.csv,.md,.xml,.py,.js,.ts,.html,.css'"
+      [maxFileSize]="10485760"
+      [maxFiles]="5">
+    </app-file-upload>
+
+    <!-- Upload Error Display -->
+    <div *ngIf="uploadError" class="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
+      {{ uploadError }}
+    </div>
+
     <select formControlName="provider" class="p-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
       <option value="dummy">Dummy</option>
       <option value="lm-studio">LM Studio (Local)</option>

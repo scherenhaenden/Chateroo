@@ -7,6 +7,12 @@ export interface SendMessagePayload {
   prompt: string;
   apiKey?: string;
   model?: string;
+  attachments?: {
+    name: string;
+    type: string;
+    base64: string;
+    size: number;
+  }[];
 }
 
 export interface ChatApiResponse {
@@ -38,4 +44,3 @@ export class ChatService {
     });
   }
 }
-
