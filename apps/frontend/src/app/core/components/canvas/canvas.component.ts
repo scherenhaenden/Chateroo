@@ -31,7 +31,7 @@ export class CanvasComponent implements AfterViewInit {
   }
 
   /**
-   * Initializes the Fabric.js canvas with specified configurations and sets up drawing settings.
+   * Initializes the Fabric.js canvas with configurations and drawing settings.
    */
   private initializeCanvas(): void {
     // Create a new Fabric.js canvas
@@ -71,7 +71,7 @@ export class CanvasComponent implements AfterViewInit {
   }
 
   /**
-   * Clears the canvas and re-applies the background color.
+   * Clears the canvas and sets the background color.
    */
   public clearCanvas(): void {
     this.canvas.clear();
