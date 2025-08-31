@@ -1,12 +1,14 @@
 {
-  "name": "ai-chat-wrapper",
+  "name": "chateroo",
   "version": "1.0.0",
   "type": "commonjs",
-  "description": "A workspace for AI chat wrapper applications",
+  "description": "AI Chat Assistant with conversational memory",
   "keywords": [
     "ai",
     "chat",
-    "wrapper"
+    "assistant",
+    "tauri",
+    "desktop"
   ],
   "author": "scherenhaenden <scherenhaenden@gmail.com>",
   "license": "UNLICENSED",
@@ -18,7 +20,13 @@
     "dev": "concurrently \"npm:dev:frontend\" \"npm:dev:backend\"",
     "dev:frontend": "npm run --workspace=frontend start",
     "dev:backend": "npm run --workspace=backend start:dev",
-    "tauri": "tauri"
+    "build:frontend": "npm run --workspace=frontend build",
+    "build:backend": "npm run --workspace=backend build",
+    "build:all": "npm run build:frontend && npm run build:backend",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:build:debug": "tauri build --debug"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.7.1",

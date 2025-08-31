@@ -1,29 +1,36 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "ai-chat-wrapper",
-  "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "productName": "Chateroo",
+  "version": "1.0.0",
+  "identifier": "com.chateroo.app",
   "build": {
     "frontendDist": "../apps/frontend/dist/frontend",
     "devUrl": "http://localhost:4200",
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run --workspace=frontend build"
+    "beforeDevCommand": "npm run dev:frontend",
+    "beforeBuildCommand": "npm run build:frontend"
   },
   "app": {
     "windows": [
       {
-        "title": "AI Chat Wrapper",
-        "width": 800,
-        "height": 600,
+        "title": "Chateroo - AI Chat Assistant",
+        "width": 1200,
+        "height": 800,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "center": true,
+        "minWidth": 800,
+        "minHeight": 600
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' asset: https: data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http: ws: wss:;"
     }
   },
-  "plugins": {},
+  "plugins": {
+    "store": {
+      "default": true
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
