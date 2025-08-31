@@ -10,6 +10,7 @@ import { GeminiEngine } from './ai-engine/gemini.engine';
 import { PerplexityEngine } from './ai-engine/perplexity.engine';
 import { GrokEngine } from './ai-engine/grok.engine';
 import { DeepseekEngine } from './ai-engine/deepseek.engine';
+import { OpenRouterEngine } from './ai-engine/openrouter.engine';
 import { EngineRegistryService } from './ai-engine/engine-registry.service';
 import { AI_ENGINES } from './ai-engine/ai-engine.constants';
 import { AiApiEngine } from './ai-engine/ai-api-engine.base';
@@ -29,6 +30,7 @@ import { AiApiEngine } from './ai-engine/ai-api-engine.base';
     PerplexityEngine,
     GrokEngine,
     DeepseekEngine,
+    OpenRouterEngine,
     {
       provide: AI_ENGINES,
       useFactory: (
@@ -40,6 +42,7 @@ import { AiApiEngine } from './ai-engine/ai-api-engine.base';
         perplexity: PerplexityEngine,
         grok: GrokEngine,
         deepseek: DeepseekEngine,
+        openrouter: OpenRouterEngine,
       ): AiApiEngine[] => [
         dummy,
         openAi,
@@ -49,6 +52,7 @@ import { AiApiEngine } from './ai-engine/ai-api-engine.base';
         perplexity,
         grok,
         deepseek,
+        openrouter,
       ],
       inject: [
         DummyEngine,
@@ -59,6 +63,7 @@ import { AiApiEngine } from './ai-engine/ai-api-engine.base';
         PerplexityEngine,
         GrokEngine,
         DeepseekEngine,
+        OpenRouterEngine,
       ],
     },
   ],

@@ -7,6 +7,7 @@ class ChatRequestDto implements ChatPayload {
   public provider: string;
   public prompt: string;
   public apiKey?: string;
+  public model?: string;
 }
 
 @Controller('api/chat')
