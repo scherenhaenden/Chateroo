@@ -2,20 +2,40 @@ import { HttpService } from '@nestjs/axios';
 import { AiApiEngine, ChatPayload, ChatResponse } from './ai-api-engine.base';
 export interface OpenRouterModel {
     id: string;
+    canonical_slug: string;
+    hugging_face_id?: string;
     name: string;
+    created: number;
     description: string;
-    pricing: {
-        prompt: string;
-        completion: string;
-    };
     context_length: number;
-    architecture: {
-        modality: string;
-    };
-    top_provider: {
-        id: string;
-        is_moderated: boolean;
-    };
+    architecture: Architecture;
+    pricing: Pricing;
+    top_provider: TopProvider;
+    per_request_limits: any;
+    supported_parameters: string[];
+}
+export interface Architecture {
+    modality: string;
+    input_modalities: string[];
+    output_modalities: string[];
+    tokenizer: string;
+    instruct_type?: string;
+}
+export interface Pricing {
+    prompt: string;
+    completion: string;
+    request?: string;
+    image?: string;
+    web_search?: string;
+    internal_reasoning?: string;
+    input_cache_read?: string;
+    audio?: string;
+    input_cache_write?: string;
+}
+export interface TopProvider {
+    context_length?: number;
+    max_completion_tokens?: number;
+    is_moderated: boolean;
 }
 export declare class OpenRouterEngine extends AiApiEngine {
     private readonly httpService;

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res, Headers } from '@nestjs/common';
+import { Controller, Post, Body, Res, Headers, Get, Query } from '@nestjs/common';
 import type { Response } from 'express';
 import { ChatService } from './chat.service';
 
@@ -80,6 +80,16 @@ export class ChatController {
         error: 'An error occurred while processing your request',
         details: error.message,
       });
+    }
+  }
+
+  @Get('openrouter/models')
+  async getOpenRouterModels(@Query('apiKey') apiKey?: string) {
+    try {
+      return await this.chatService.getOpenRouterModels(apiKey);
+    } catch (error) {
+      console.error('Error fetching OpenRouter models:', error);
+      throw error;
     }
   }
 }

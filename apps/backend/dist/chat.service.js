@@ -93,6 +93,22 @@ let ChatService = class ChatService {
         }
         return conversationalPrompt;
     }
+    async getOpenRouterModels(apiKey) {
+        const engine = this.engineRegistry.get('openrouter');
+        if (!engine) {
+            throw new Error('OpenRouter engine not available');
+        }
+        if (!apiKey) {
+            try {
+                return await engine.listModels('');
+            }
+            catch (error) {
+                console.log('No API key provided for OpenRouter models, returning empty list');
+                return [];
+            }
+        }
+        return await engine.listModels(apiKey);
+    }
 };
 exports.ChatService = ChatService;
 exports.ChatService = ChatService = __decorate([

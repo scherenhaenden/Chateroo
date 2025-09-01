@@ -27,8 +27,10 @@ let OpenRouterEngine = class OpenRouterEngine extends ai_api_engine_base_1.AiApi
     async listModels(apiKey) {
         const headers = {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
         };
+        if (apiKey && apiKey.trim() !== '') {
+            headers.Authorization = `Bearer ${apiKey}`;
+        }
         try {
             const response = await (0, rxjs_1.firstValueFrom)(this.httpService.get(this.modelsUrl, { headers }));
             return response.data?.data ?? [];

@@ -5,6 +5,7 @@ import {
   ChatResponse,
   StreamChunk,
 } from './ai-engine/ai-api-engine.base';
+import { OpenRouterEngine, OpenRouterModel } from './ai-engine/openrouter.engine';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -142,5 +143,30 @@ export class ChatService {
     }
 
     return conversationalPrompt;
+  }
+
+  /**
+   * Gets available OpenRouter models
+   */
+  async getOpenRouterModels(apiKey?: string): Promise<OpenRouterModel[]> {
+    const engine = this.engineRegistry.get('openrouter') as OpenRouterEngine;
+    if (!engine) {
+      throw new Error('OpenRouter engine not available');
+    }
+
+    // If no API key provided, try to get models with a temporary/demo key
+    // or return an empty array with a message
+    if (!apiKey) {
+      try {
+        // OpenRouter's public models endpoint doesn't require authentication
+        // We'll use a minimal key or handle the request differently
+        return await engine.listModels('');
+      } catch (error) {
+        console.log('No API key provided for OpenRouter models, returning empty list');
+        return [];
+      }
+    }
+
+    return await engine.listModels(apiKey);
   }
 }
