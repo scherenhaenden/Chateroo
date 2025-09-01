@@ -1,3 +1,7 @@
+export interface ChatMessage {
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+}
 export interface ChatAttachment {
     name: string;
     type: string;
@@ -10,6 +14,7 @@ export interface ChatPayload {
     model?: string;
     attachments?: ChatAttachment[];
     stream?: boolean;
+    messages?: ChatMessage[];
 }
 export interface ChatResponse {
     content: string;

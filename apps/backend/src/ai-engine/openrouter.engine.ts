@@ -117,29 +117,76 @@ export class OpenRouterEngine extends AiApiEngine {
     const headers = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${payload.apiKey}`,
+      'HTTP-Referer': 'https://chateroo.app', // Optional: your app's URL
+      'X-Title': 'Chateroo', // Optional: your app's name
     };
+
+    // Use the messages from payload if available, otherwise fallback to simple prompt
+    const messages =
+      payload.messages && payload.messages.length > 0
+        ? payload.messages
+        : [{ role: 'user', content: payload.prompt }];
 
     const body = {
       model: payload.model ?? this.defaultModel,
-      messages: [{ role: 'user', content: payload.prompt }],
+      messages: messages,
+      stream: false,
+      // Add reasoning if supported by model
+      ...(payload.model?.includes('reasoning') && {
+        reasoning: {
+          effort: 'high',
+        },
+      }),
     };
 
     try {
       const response = await firstValueFrom(
         this.httpService.post(this.apiUrl, body, { headers }),
       );
+
       const content = response.data.choices[0]?.message?.content;
       if (!content) {
         throw new Error('Keine gültige Antwort von OpenRouter erhalten.');
       }
+
       return { content };
     } catch (error) {
-      console.error(
-        'Fehler bei der Kommunikation mit OpenRouter:',
-        (error as any).response?.data || (error as any).message,
-      );
+      const errorData = (error as any).response?.data;
+      const errorMessage = (error as any).message;
+
+      console.error('Fehler bei der Kommunikation mit OpenRouter:', errorData || errorMessage);
+
+      // Handle specific OpenRouter errors
+      if (errorData?.error) {
+        const { message, code } = errorData.error;
+
+        if (code === 404 && message.includes('data policy')) {
+          return {
+            content: `Error: The selected model "${
+              payload.model || this.defaultModel
+            }" is not available according to your OpenRouter data policy settings. Please:\n\n1. Visit https://openrouter.ai/settings/privacy to configure your data policy\n2. Or select a different model that's available with your current settings\n3. Try using models like "openai/gpt-3.5-turbo" or "openai/gpt-4o-mini" which are commonly available`,
+          };
+        }
+
+        if (code === 401) {
+          return {
+            content: 'Error: Invalid API key. Please check your OpenRouter API key.',
+          };
+        }
+
+        if (code === 429) {
+          return {
+            content: 'Error: Rate limit exceeded. Please wait a moment and try again.',
+          };
+        }
+
+        return {
+          content: `Error: ${message} (Code: ${code})`,
+        };
+      }
+
       return {
-        content: 'Sorry, there was an error communicating with OpenRouter.',
+        content: 'Sorry, there was an error communicating with OpenRouter. Please try again.',
       };
     }
   }

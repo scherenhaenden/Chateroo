@@ -58,10 +58,21 @@ let OpenRouterEngine = class OpenRouterEngine extends ai_api_engine_base_1.AiApi
         const headers = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${payload.apiKey}`,
+            'HTTP-Referer': 'https://chateroo.app',
+            'X-Title': 'Chateroo',
         };
+        const messages = payload.messages && payload.messages.length > 0
+            ? payload.messages
+            : [{ role: 'user', content: payload.prompt }];
         const body = {
             model: payload.model ?? this.defaultModel,
-            messages: [{ role: 'user', content: payload.prompt }],
+            messages: messages,
+            stream: false,
+            ...(payload.model?.includes('reasoning') && {
+                reasoning: {
+                    effort: 'high',
+                },
+            }),
         };
         try {
             const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(this.apiUrl, body, { headers }));
@@ -72,9 +83,32 @@ let OpenRouterEngine = class OpenRouterEngine extends ai_api_engine_base_1.AiApi
             return { content };
         }
         catch (error) {
-            console.error('Fehler bei der Kommunikation mit OpenRouter:', error.response?.data || error.message);
+            const errorData = error.response?.data;
+            const errorMessage = error.message;
+            console.error('Fehler bei der Kommunikation mit OpenRouter:', errorData || errorMessage);
+            if (errorData?.error) {
+                const { message, code } = errorData.error;
+                if (code === 404 && message.includes('data policy')) {
+                    return {
+                        content: `Error: The selected model "${payload.model || this.defaultModel}" is not available according to your OpenRouter data policy settings. Please:\n\n1. Visit https://openrouter.ai/settings/privacy to configure your data policy\n2. Or select a different model that's available with your current settings\n3. Try using models like "openai/gpt-3.5-turbo" or "openai/gpt-4o-mini" which are commonly available`,
+                    };
+                }
+                if (code === 401) {
+                    return {
+                        content: 'Error: Invalid API key. Please check your OpenRouter API key.',
+                    };
+                }
+                if (code === 429) {
+                    return {
+                        content: 'Error: Rate limit exceeded. Please wait a moment and try again.',
+                    };
+                }
+                return {
+                    content: `Error: ${message} (Code: ${code})`,
+                };
+            }
             return {
-                content: 'Sorry, there was an error communicating with OpenRouter.',
+                content: 'Sorry, there was an error communicating with OpenRouter. Please try again.',
             };
         }
     }
