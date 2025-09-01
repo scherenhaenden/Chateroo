@@ -123,10 +123,15 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
       if (provider === 'openrouter') {
         orProviderControl?.setValidators([Validators.required]);
         modelControl?.setValidators([Validators.required]);
-        void this.loadOpenRouterModels();
+        // Automatically load OpenRouter models when provider is selected
+        void this.loadOpenRouterModelsAutomatically();
       } else {
         orProviderControl?.clearValidators();
         modelControl?.clearValidators();
+        // Clear OpenRouter data when switching away
+        this.openRouterProviders = [];
+        this.openRouterModels = [];
+        this.filteredOpenRouterModels = [];
       }
       orProviderControl?.updateValueAndValidity();
       modelControl?.updateValueAndValidity();
@@ -141,8 +146,6 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
         this.loadOpenRouterModels();
       }
     });
-
-    // Remove the manual message push - this is now handled by ChatService
   }
 
   /**
@@ -284,49 +287,6 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
-   * Handles a streaming chunk from the chat API.
-   * @param chunk The chunk object
-   */
-  private handleStreamChunk(chunk: { content: string; done?: boolean }): void {
-    const lastIndex = this.messages.length - 1;
-    const lastMessage = this.messages[lastIndex];
-
-    if (lastMessage && lastMessage.sender === 'ai') {
-      if (chunk.done) {
-        // Stream ist beendet
-        lastMessage.isLoading = false;
-        const codeInfo = this.extractCodeFromResponse(lastMessage.text || lastMessage.content || '');
-        Object.assign(lastMessage, codeInfo);
-        this.isLoading = false;
-        this.togglePrompt(true);
-      } else {
-        // Füge neuen Content zum bestehenden Text hinzu
-        const currentText = lastMessage.text || lastMessage.content || '';
-        lastMessage.text = currentText + chunk.content;
-        lastMessage.content = currentText + chunk.content;
-        lastMessage.isLoading = true; // Zeige weiterhin Loading-Animation
-      }
-    }
-  }
-
-  /**
-   * Handles the completion of a streaming response from the chat API.
-   */
-  private handleStreamComplete(): void {
-    const lastIndex = this.messages.length - 1;
-    const lastMessage = this.messages[lastIndex];
-
-    if (lastMessage && lastMessage.sender === 'ai') {
-      lastMessage.isLoading = false;
-      const codeInfo = this.extractCodeFromResponse(lastMessage.text || lastMessage.content || '');
-      Object.assign(lastMessage, codeInfo);
-    }
-
-    this.isLoading = false;
-    this.togglePrompt(true);
-  }
-
-  /**
    * Toggles the canvas option in chat options.
    */
   public toggleCanvas(): void {
@@ -396,27 +356,6 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
-   * Adds a user message and an AI loading message to the messages array and sets isLoading to true.
-   * @param prompt The user prompt
-   */
-  private addUserAndLoadingMessages(prompt: string): void {
-    this.messages.push({
-      role: 'user',
-      content: prompt,
-      sender: 'user',
-      text: prompt
-    });
-    this.messages.push({
-      role: 'assistant',
-      content: '',
-      sender: 'ai',
-      text: '',
-      isLoading: true
-    });
-    this.isLoading = true;
-  }
-
-  /**
    * Enables or disables the prompt input control.
    * @param enable True to enable, false to disable
    */
@@ -435,7 +374,6 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
    * @param code The canvas code
    */
   public onCanvasRequested(code: string): void {
-    // Actualizar el c��digo del canvas y abrir el modal
     const lastMessage = this.messages[this.messages.length - 1];
     if (lastMessage) {
       lastMessage.canvasCode = code;
@@ -448,7 +386,6 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
    * @param code The live code
    */
   public onLiveCodeRequested(code: string): void {
-    // Actualizar el código live y abrir el modal
     const lastMessage = this.messages[this.messages.length - 1];
     if (lastMessage) {
       lastMessage.liveCode = code;
@@ -466,7 +403,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.chatService.getOpenRouterModels(apiKey).subscribe((models) => {
       this.openRouterModels = models;
       this.openRouterProviders = Array.from(
-        new Set(models.map((m) => m.top_provider.id)),
+        new Set(models.map((m) => this.extractProviderFromId(m.id)))
       );
       const providerControl = this.chatForm.get('openRouterProvider');
       if (this.openRouterProviders.length > 0) {
@@ -477,12 +414,54 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
+   * Automatically loads OpenRouter models when the provider is selected.
+   * This works with or without an API key.
+   */
+  private loadOpenRouterModelsAutomatically(): void {
+    const provider = this.chatForm.get('provider')?.value;
+    if (!provider || provider !== 'openrouter') return;
+
+    // Try to get API key from form or settings, but proceed even without one
+    const apiKey = this.chatForm.get('apiKey')?.value || this.settingsService.getApiKey('openrouter') || '';
+
+    // Load models with or without API key
+    this.chatService.getOpenRouterModels(apiKey).subscribe({
+      next: (models) => {
+        this.openRouterModels = models;
+        // Extract unique providers from the models
+        this.openRouterProviders = Array.from(
+          new Set(models.map((m) => this.extractProviderFromId(m.id)))
+        );
+        const providerControl = this.chatForm.get('openRouterProvider');
+        if (this.openRouterProviders.length > 0) {
+          providerControl?.setValue(this.openRouterProviders[0]);
+          this.filterModelsForProvider(this.openRouterProviders[0]);
+        }
+      },
+      error: (error) => {
+        console.error('Error loading OpenRouter models:', error);
+        // Reset the dropdowns on error
+        this.openRouterProviders = [];
+        this.openRouterModels = [];
+        this.filteredOpenRouterModels = [];
+      }
+    });
+  }
+
+  /**
+   * Extracts provider name from model ID (e.g., "openai/gpt-4" -> "openai")
+   */
+  private extractProviderFromId(modelId: string): string {
+    return modelId.split('/')[0] || 'unknown';
+  }
+
+  /**
    * Filters OpenRouter models for the selected provider.
    * @param provider The provider name
    */
   private filterModelsForProvider(provider: string): void {
     this.filteredOpenRouterModels = this.openRouterModels.filter(
-      (m) => m.top_provider.id === provider,
+      (m) => this.extractProviderFromId(m.id) === provider
     );
     const modelControl = this.chatForm.get('model');
     if (this.filteredOpenRouterModels.length > 0) {
@@ -529,7 +508,6 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
    */
   public adjustTextareaHeight(event: Event): void {
     const textarea = event.target as HTMLTextAreaElement;
-    const lineHeight = 1.5; // rem
     const minHeight = 2.5; // rem - altura mínima (1 línea)
     const maxHeight = 6; // rem - altura máxima (4 líneas)
 
@@ -559,12 +537,10 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
    * @param event The keyboard event
    */
   public onTextareaKeydown(event: KeyboardEvent): void {
-
     // If Shift+Enter, allow new line
-    if(event.shiftKey) {
+    if (event.shiftKey) {
       return;
     }
-
 
     if (event.key === 'Enter') {
       if (event.altKey) {
