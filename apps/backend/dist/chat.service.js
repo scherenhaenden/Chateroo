@@ -109,6 +109,13 @@ let ChatService = class ChatService {
         }
         return await engine.listModels(apiKey);
     }
+    async getOpenRouterProviders() {
+        const engine = this.engineRegistry.get('openrouter');
+        if (!engine) {
+            throw new Error('OpenRouter engine not available');
+        }
+        return await engine.listProviders();
+    }
 };
 exports.ChatService = ChatService;
 exports.ChatService = ChatService = __decorate([

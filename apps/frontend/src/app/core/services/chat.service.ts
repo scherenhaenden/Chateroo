@@ -30,6 +30,14 @@ export interface StreamEvent {
   done?: boolean;
 }
 
+export interface OpenRouterProvider {
+  name: string;
+  slug: string;
+  privacy_policy_url?: string;
+  terms_of_service_url?: string;
+  status_page_url?: string;
+}
+
 export interface OpenRouterModel {
   id: string;
   canonical_slug: string;
@@ -358,6 +366,10 @@ export class ChatService {
     return this.http.get<OpenRouterModel[]>(`${this.apiUrl}/openrouter/models`, {
       params: { apiKey },
     });
+  }
+
+  public getOpenRouterProviders(): Observable<OpenRouterProvider[]> {
+    return this.http.get<OpenRouterProvider[]>(`${this.apiUrl}/openrouter/providers`);
   }
 
   /**

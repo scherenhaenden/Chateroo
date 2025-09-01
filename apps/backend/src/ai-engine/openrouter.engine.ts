@@ -3,6 +3,14 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AiApiEngine, ChatPayload, ChatResponse } from './ai-api-engine.base';
 
+export interface OpenRouterProvider {
+  name: string;
+  slug: string;
+  privacy_policy_url?: string;
+  terms_of_service_url?: string;
+  status_page_url?: string;
+}
+
 export interface OpenRouterModel {
   id: string;
   canonical_slug: string;
@@ -49,6 +57,7 @@ export class OpenRouterEngine extends AiApiEngine {
   public readonly provider = 'openrouter';
   private readonly apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
   private readonly modelsUrl = 'https://openrouter.ai/api/v1/models';
+  private readonly providersUrl = 'https://openrouter.ai/api/v1/providers';
   private readonly defaultModel = 'openai/gpt-4o-mini';
 
   public constructor(private readonly httpService: HttpService) {
@@ -73,6 +82,28 @@ export class OpenRouterEngine extends AiApiEngine {
     } catch (error) {
       console.error(
         'Fehler beim Abrufen der Modelle von OpenRouter:',
+        (error as any).response?.data || (error as any).message,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Gets available OpenRouter providers
+   */
+  public async listProviders(): Promise<OpenRouterProvider[]> {
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(this.providersUrl, { headers }),
+      );
+      return response.data?.data ?? [];
+    } catch (error) {
+      console.error(
+        'Fehler beim Abrufen der Provider von OpenRouter:',
         (error as any).response?.data || (error as any).message,
       );
       return [];

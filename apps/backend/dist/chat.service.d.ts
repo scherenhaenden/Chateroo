@@ -32,4 +32,5 @@ export declare class ChatService {
     private extractPromptFromPayload;
     private convertMessagesToConversationalPrompt;
     getOpenRouterModels(apiKey?: string): Promise<OpenRouterModel[]>;
+    getOpenRouterProviders(): Promise<any[]>;
 }
