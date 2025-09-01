@@ -83,6 +83,14 @@ export class ChatController {
     }
   }
 
+  /**
+   * Fetches OpenRouter models based on the provided API key.
+   *
+   * This function makes an asynchronous call to the chatService's getOpenRouterModels method, passing the apiKey as an argument.
+   * It handles any potential errors by logging them to the console and rethrowing the error for further handling.
+   *
+   * @param {string} [apiKey] - The API key used to authenticate the request.
+   */
   @Get('openrouter/models')
   async getOpenRouterModels(@Query('apiKey') apiKey?: string) {
     try {
