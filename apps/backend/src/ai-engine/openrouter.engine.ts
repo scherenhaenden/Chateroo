@@ -55,6 +55,14 @@ export class OpenRouterEngine extends AiApiEngine {
     super();
   }
 
+  /**
+   * Retrieve a list of models from the OpenRouter API.
+   *
+   * This function constructs an HTTP GET request to fetch models, including an Authorization header if an apiKey is provided. It handles potential errors during the request and logs them, returning an empty array in case of failure.
+   *
+   * @param apiKey - The API key used for authorization when making the request.
+   * @returns A promise that resolves to an array of OpenRouterModel objects or an empty array if the request fails.
+   */
   public async listModels(apiKey: string): Promise<OpenRouterModel[]> {
     const headers: any = {
       'Content-Type': 'application/json',
