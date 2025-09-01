@@ -69,6 +69,15 @@ let ChatController = class ChatController {
             throw error;
         }
     }
+    async getOpenRouterProviders() {
+        try {
+            return await this.chatService.getOpenRouterProviders();
+        }
+        catch (error) {
+            console.error('Error fetching OpenRouter providers:', error);
+            throw error;
+        }
+    }
 };
 exports.ChatController = ChatController;
 __decorate([
@@ -87,6 +96,12 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "getOpenRouterModels", null);
+__decorate([
+    (0, common_1.Get)('openrouter/providers'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "getOpenRouterProviders", null);
 exports.ChatController = ChatController = __decorate([
     (0, common_1.Controller)('api/chat'),
     __metadata("design:paramtypes", [chat_service_1.ChatService])

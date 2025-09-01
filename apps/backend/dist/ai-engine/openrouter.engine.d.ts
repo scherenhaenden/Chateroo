@@ -37,13 +37,22 @@ export interface TopProvider {
     max_completion_tokens?: number;
     is_moderated: boolean;
 }
+export interface OpenRouterProvider {
+    name: string;
+    slug: string;
+    privacy_policy_url?: string;
+    terms_of_service_url?: string;
+    status_page_url?: string;
+}
 export declare class OpenRouterEngine extends AiApiEngine {
     private readonly httpService;
     readonly provider = "openrouter";
     private readonly apiUrl;
     private readonly modelsUrl;
+    private readonly providersUrl;
     private readonly defaultModel;
     constructor(httpService: HttpService);
     listModels(apiKey: string): Promise<OpenRouterModel[]>;
+    listProviders(): Promise<OpenRouterProvider[]>;
     sendMessage(payload: ChatPayload): Promise<ChatResponse>;
 }

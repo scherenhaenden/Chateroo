@@ -93,6 +93,13 @@ let ChatService = class ChatService {
         }
         return conversationalPrompt;
     }
+    async getOpenRouterProviders() {
+        const engine = this.engineRegistry.get('openrouter');
+        if (!engine) {
+            throw new Error('OpenRouter engine not available');
+        }
+        return await engine.listProviders();
+    }
     async getOpenRouterModels(apiKey) {
         const engine = this.engineRegistry.get('openrouter');
         if (!engine) {

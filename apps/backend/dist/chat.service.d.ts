@@ -1,6 +1,6 @@
 import { EngineRegistryService } from './ai-engine/engine-registry.service';
 import { ChatResponse, StreamChunk } from './ai-engine/ai-api-engine.base';
-import { OpenRouterModel } from './ai-engine/openrouter.engine';
+import { OpenRouterModel, OpenRouterProvider } from './ai-engine/openrouter.engine';
 export interface ChatMessage {
     role: 'user' | 'assistant' | 'system';
     content: string;
@@ -31,5 +31,6 @@ export declare class ChatService {
     sendMessageStream(payload: ChatServicePayload): AsyncIterableIterator<StreamChunk>;
     private extractPromptFromPayload;
     private convertMessagesToConversationalPrompt;
+    getOpenRouterProviders(): Promise<OpenRouterProvider[]>;
     getOpenRouterModels(apiKey?: string): Promise<OpenRouterModel[]>;
 }

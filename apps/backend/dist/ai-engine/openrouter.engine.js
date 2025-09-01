@@ -19,6 +19,7 @@ let OpenRouterEngine = class OpenRouterEngine extends ai_api_engine_base_1.AiApi
     provider = 'openrouter';
     apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
     modelsUrl = 'https://openrouter.ai/api/v1/models';
+    providersUrl = 'https://openrouter.ai/api/v1/providers';
     defaultModel = 'openai/gpt-4o-mini';
     constructor(httpService) {
         super();
@@ -37,6 +38,19 @@ let OpenRouterEngine = class OpenRouterEngine extends ai_api_engine_base_1.AiApi
         }
         catch (error) {
             console.error('Fehler beim Abrufen der Modelle von OpenRouter:', error.response?.data || error.message);
+            return [];
+        }
+    }
+    async listProviders() {
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+        try {
+            const response = await (0, rxjs_1.firstValueFrom)(this.httpService.get(this.providersUrl, { headers }));
+            return response.data?.data ?? [];
+        }
+        catch (error) {
+            console.error('Fehler beim Abrufen der Provider von OpenRouter:', error.response?.data || error.message);
             return [];
         }
     }

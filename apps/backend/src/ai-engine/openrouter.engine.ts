@@ -44,11 +44,20 @@ export interface TopProvider {
   is_moderated: boolean;
 }
 
+export interface OpenRouterProvider {
+  name: string;
+  slug: string;
+  privacy_policy_url?: string;
+  terms_of_service_url?: string;
+  status_page_url?: string;
+}
+
 @Injectable()
 export class OpenRouterEngine extends AiApiEngine {
   public readonly provider = 'openrouter';
   private readonly apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
   private readonly modelsUrl = 'https://openrouter.ai/api/v1/models';
+  private readonly providersUrl = 'https://openrouter.ai/api/v1/providers';
   private readonly defaultModel = 'openai/gpt-4o-mini';
 
   public constructor(private readonly httpService: HttpService) {
@@ -73,6 +82,25 @@ export class OpenRouterEngine extends AiApiEngine {
     } catch (error) {
       console.error(
         'Fehler beim Abrufen der Modelle von OpenRouter:',
+        (error as any).response?.data || (error as any).message,
+      );
+      return [];
+    }
+  }
+
+  public async listProviders(): Promise<OpenRouterProvider[]> {
+    const headers: any = {
+      'Content-Type': 'application/json',
+    };
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(this.providersUrl, { headers }),
+      );
+      return response.data?.data ?? [];
+    } catch (error) {
+      console.error(
+        'Fehler beim Abrufen der Provider von OpenRouter:',
         (error as any).response?.data || (error as any).message,
       );
       return [];

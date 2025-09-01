@@ -92,4 +92,14 @@ export class ChatController {
       throw error;
     }
   }
+
+  @Get('openrouter/providers')
+  async getOpenRouterProviders() {
+    try {
+      return await this.chatService.getOpenRouterProviders();
+    } catch (error) {
+      console.error('Error fetching OpenRouter providers:', error);
+      throw error;
+    }
+  }
 }

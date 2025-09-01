@@ -11,6 +11,7 @@ import {
   SendMessagePayload,
   ChatApiResponse,
   OpenRouterModel,
+  OpenRouterProvider,
 } from '../../services/chat.service';
 import { SettingsService } from '../../services/settings.service';
 import { ChatMessage, ChatOptions, ChatAttachment, ChatSession } from '../../../models/chat.model';
@@ -41,6 +42,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   public openRouterProviders: string[] = [];
   private openRouterModels: OpenRouterModel[] = [];
   public filteredOpenRouterModels: OpenRouterModel[] = [];
+  private allOpenRouterProviders: OpenRouterProvider[] = [];
 
   // File upload properties
   public currentAttachments: ChatAttachment[] = [];
@@ -414,37 +416,37 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
-   * Automatically loads OpenRouter models when the provider is selected.
+   * Automatically loads OpenRouter models and providers when the provider is selected.
    * This works with or without an API key.
    */
   private loadOpenRouterModelsAutomatically(): void {
     const provider = this.chatForm.get('provider')?.value;
     if (!provider || provider !== 'openrouter') return;
 
-    // Try to get API key from form or settings, but proceed even without one
-    const apiKey = this.chatForm.get('apiKey')?.value || this.settingsService.getApiKey('openrouter') || '';
+    // Load both providers and models simultaneously
+    Promise.all([
+      this.chatService.getOpenRouterProviders().toPromise(),
+      this.chatService.getOpenRouterModels('').toPromise()
+    ]).then(([providers, models]) => {
+      // Store all providers
+      this.allOpenRouterProviders = providers || [];
+      this.openRouterProviders = this.allOpenRouterProviders.map(p => p.slug);
 
-    // Load models with or without API key
-    this.chatService.getOpenRouterModels(apiKey).subscribe({
-      next: (models) => {
-        this.openRouterModels = models;
-        // Extract unique providers from the models
-        this.openRouterProviders = Array.from(
-          new Set(models.map((m) => this.extractProviderFromId(m.id)))
-        );
-        const providerControl = this.chatForm.get('openRouterProvider');
-        if (this.openRouterProviders.length > 0) {
-          providerControl?.setValue(this.openRouterProviders[0]);
-          this.filterModelsForProvider(this.openRouterProviders[0]);
-        }
-      },
-      error: (error) => {
-        console.error('Error loading OpenRouter models:', error);
-        // Reset the dropdowns on error
-        this.openRouterProviders = [];
-        this.openRouterModels = [];
-        this.filteredOpenRouterModels = [];
+      // Store all models
+      this.openRouterModels = models || [];
+
+      // Set default provider and filter models
+      const providerControl = this.chatForm.get('openRouterProvider');
+      if (this.openRouterProviders.length > 0) {
+        providerControl?.setValue(this.openRouterProviders[0]);
+        this.filterModelsForProvider(this.openRouterProviders[0]);
       }
+    }).catch(error => {
+      console.error('Error loading OpenRouter data:', error);
+      // Reset the dropdowns on error
+      this.openRouterProviders = [];
+      this.openRouterModels = [];
+      this.filteredOpenRouterModels = [];
     });
   }
 

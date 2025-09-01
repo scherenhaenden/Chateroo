@@ -5,7 +5,7 @@ import {
   ChatResponse,
   StreamChunk,
 } from './ai-engine/ai-api-engine.base';
-import { OpenRouterEngine, OpenRouterModel } from './ai-engine/openrouter.engine';
+import { OpenRouterEngine, OpenRouterModel, OpenRouterProvider } from './ai-engine/openrouter.engine';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -143,6 +143,18 @@ export class ChatService {
     }
 
     return conversationalPrompt;
+  }
+
+  /**
+   * Gets available OpenRouter providers
+   */
+  async getOpenRouterProviders(): Promise<OpenRouterProvider[]> {
+    const engine = this.engineRegistry.get('openrouter') as OpenRouterEngine;
+    if (!engine) {
+      throw new Error('OpenRouter engine not available');
+    }
+
+    return await engine.listProviders();
   }
 
   /**
