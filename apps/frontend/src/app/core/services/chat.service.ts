@@ -386,4 +386,41 @@ export class ChatService {
         // The original ChatAttachment format requires id, url, isImage which are UI-specific
       }));
   }
+
+  /**
+   * Establishes an SSE connection to the backend for streaming chat responses.
+   * @param payload The payload to send to the backend.
+   * @returns An Observable that emits StreamEvent objects.
+   */
+  public streamChat(payload: SendMessagePayload): Observable<StreamEvent> {
+    const url = '/api/chat';
+    const eventSource = new EventSource(url);
+
+    // Send the payload as query parameters or headers if needed
+    // (EventSource does not support request bodies)
+
+    return new Observable<StreamEvent>((observer) => {
+      eventSource.onmessage = (event) => {
+        try {
+          const data: StreamEvent = JSON.parse(event.data);
+          observer.next(data);
+          if (data.done) {
+            eventSource.close();
+            observer.complete();
+          }
+        } catch (error) {
+          observer.error('Error parsing stream data');
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        observer.error('Stream connection error');
+        eventSource.close();
+      };
+
+      return () => {
+        eventSource.close();
+      };
+    });
+  }
 }
