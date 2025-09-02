@@ -17,6 +17,12 @@ let ChatService = class ChatService {
     constructor(engineRegistry) {
         this.engineRegistry = engineRegistry;
     }
+    extractPromptFromPayload(payload) {
+        if (payload.messages) {
+            return payload.messages.map((msg) => msg.content).join('\n');
+        }
+        return payload.prompt || '';
+    }
     sendMessage(payload) {
         const engine = this.engineRegistry.get(payload.provider);
         if (!engine) {
@@ -57,41 +63,6 @@ let ChatService = class ChatService {
             const response = await engine.sendMessage(chatPayload);
             yield { content: response.content, done: true };
         }
-    }
-    extractPromptFromPayload(payload) {
-        if (payload.messages && payload.messages.length > 0) {
-            return this.convertMessagesToConversationalPrompt(payload.messages);
-        }
-        if (payload.prompt) {
-            return payload.prompt;
-        }
-        throw new Error('No prompt or messages provided');
-    }
-    convertMessagesToConversationalPrompt(messages) {
-        let conversationalPrompt = '';
-        const systemMessages = messages.filter(msg => msg.role === 'system');
-        if (systemMessages.length > 0) {
-            conversationalPrompt += systemMessages.map(msg => msg.content).join('\n') + '\n\n';
-        }
-        const conversationMessages = messages.filter(msg => msg.role !== 'system');
-        if (conversationMessages.length > 1) {
-            conversationalPrompt += 'Previous conversation:\n';
-            for (let i = 0; i < conversationMessages.length - 1; i++) {
-                const msg = conversationMessages[i];
-                if (msg.role === 'user') {
-                    conversationalPrompt += `User: ${msg.content}\n`;
-                }
-                else if (msg.role === 'assistant') {
-                    conversationalPrompt += `Assistant: ${msg.content}\n`;
-                }
-            }
-            conversationalPrompt += '\nCurrent question:\n';
-        }
-        const lastMessage = conversationMessages[conversationMessages.length - 1];
-        if (lastMessage && lastMessage.role === 'user') {
-            conversationalPrompt += lastMessage.content;
-        }
-        return conversationalPrompt;
     }
     async getOpenRouterModels(apiKey) {
         const engine = this.engineRegistry.get('openrouter');

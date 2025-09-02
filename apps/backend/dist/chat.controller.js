@@ -20,14 +20,20 @@ let ChatController = class ChatController {
     constructor(chatService) {
         this.chatService = chatService;
     }
-    async sendMessage(payload, res, accept) {
+    setupStreamHeaders(res) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders?.();
+    }
+    logPayload(payload) {
         console.log('Received payload:', payload);
+    }
+    async sendMessage(payload, res, accept) {
+        this.logPayload(payload);
         const isStream = payload.stream || accept?.includes('text/event-stream');
         if (isStream) {
-            res.setHeader('Content-Type', 'text/event-stream');
-            res.setHeader('Cache-Control', 'no-cache');
-            res.setHeader('Connection', 'keep-alive');
-            res.flushHeaders?.();
+            this.setupStreamHeaders(res);
             try {
                 for await (const chunk of this.chatService.sendMessageStream(payload)) {
                     if (chunk.content) {

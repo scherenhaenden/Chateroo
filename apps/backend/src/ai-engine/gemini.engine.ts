@@ -7,6 +7,7 @@ import {
   ChatResponse,
   StreamChunk,
 } from './ai-api-engine.base';
+import { formatFileSize, isTextFile } from './engine-utils';
 
 @Injectable()
 export class GeminiEngine extends AiApiEngine {
@@ -29,27 +30,27 @@ export class GeminiEngine extends AiApiEngine {
       Authorization: `Bearer ${payload.apiKey}`,
     };
 
-    // Erweitere die Nachricht um Datei-Informationen
     let messageContent = payload.prompt;
 
     if (payload.attachments && payload.attachments.length > 0) {
       const attachmentInfo = payload.attachments
         .map((att) => {
           if (att.type.startsWith('image/')) {
-            return `[BILD: ${att.name} - ${this.formatFileSize(att.size)}]`;
-          } else if (this.isTextFile(att.type)) {
+            return `[BILD: ${att.name} - ${formatFileSize(att.size)}]`;
+          } else if (isTextFile(att.type)) {
             try {
               const content = Buffer.from(att.base64, 'base64').toString(
                 'utf-8',
               );
-              return `[DATEI: ${att.name}]\n${content.substring(0, 1500)}${content.length > 1500 ? '\n[...gekürzt]' : ''}`;
+              return `[DATEI: ${att.name}]
+${content.substring(0, 1500)}${content.length > 1500 ? '\n[...gekürzt]' : ''}`;
             } catch {
               return `[DATEI: ${att.name} - nicht lesbar]`;
             }
           }
-          return `[DATEI: ${att.name} - ${this.formatFileSize(att.size)}]`;
+          return `[DATEI: ${att.name} - ${formatFileSize(att.size)}]`;
         })
-        .join('\n\n');
+        .join('\n');
 
       messageContent = `${payload.prompt}\n\nAngehängte Dateien:\n${attachmentInfo}`;
     }
@@ -130,8 +131,8 @@ export class GeminiEngine extends AiApiEngine {
       const attachmentInfo = payload.attachments
         .map((att) => {
           if (att.type.startsWith('image/')) {
-            return `[BILD: ${att.name} - ${this.formatFileSize(att.size)}]`;
-          } else if (this.isTextFile(att.type)) {
+            return `[BILD: ${att.name} - ${formatFileSize(att.size)}]`;
+          } else if (isTextFile(att.type)) {
             try {
               const content = Buffer.from(att.base64, 'base64').toString(
                 'utf-8',
@@ -141,7 +142,7 @@ export class GeminiEngine extends AiApiEngine {
               return `[DATEI: ${att.name} - nicht lesbar]`;
             }
           }
-          return `[DATEI: ${att.name} - ${this.formatFileSize(att.size)}]`;
+          return `[DATEI: ${att.name} - ${formatFileSize(att.size)}]`;
         })
         .join('\n\n');
 
@@ -171,30 +172,5 @@ export class GeminiEngine extends AiApiEngine {
         content: 'Sorry, there was an error communicating with Gemini.',
       };
     }
-  }
-
-  private formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
-
-  private isTextFile(mimeType: string): boolean {
-    const textTypes = [
-      'text/plain',
-      'text/markdown',
-      'text/csv',
-      'application/json',
-      'text/html',
-      'text/css',
-      'text/javascript',
-      'application/javascript',
-      'text/xml',
-      'application/xml',
-      'application/typescript',
-    ];
-    return textTypes.includes(mimeType) || mimeType.startsWith('text/');
   }
 }

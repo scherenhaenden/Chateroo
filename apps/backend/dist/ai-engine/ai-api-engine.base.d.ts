@@ -1,7 +1,4 @@
-export interface ChatMessage {
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-}
+import { ChatMessage } from '../dtos/chat.dto';
 export interface ChatAttachment {
     name: string;
     type: string;
