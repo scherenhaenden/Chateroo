@@ -1,4 +1,4 @@
-export interface ChatMessage {
+export declare class ChatMessage {
     role: 'user' | 'assistant' | 'system';
     content: string;
     attachments?: {
@@ -8,7 +8,7 @@ export interface ChatMessage {
         size: number;
     }[];
 }
-export interface SendMessageDto {
+export declare class SendMessageDto {
     provider: string;
     messages?: ChatMessage[];
     prompt?: string;

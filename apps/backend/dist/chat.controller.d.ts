@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 import { ChatService } from './chat.service';
-import type { SendMessageDto } from './dtos/chat.dto';
+import { SendMessageDto } from './dtos/chat.dto';
 export declare class ChatController {
     private readonly chatService;
     constructor(chatService: ChatService);
