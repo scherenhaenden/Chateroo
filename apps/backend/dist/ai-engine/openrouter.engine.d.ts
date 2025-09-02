@@ -1,5 +1,12 @@
 import { HttpService } from '@nestjs/axios';
 import { AiApiEngine, ChatPayload, ChatResponse } from './ai-api-engine.base';
+export interface OpenRouterProvider {
+    name: string;
+    slug: string;
+    privacy_policy_url?: string;
+    terms_of_service_url?: string;
+    status_page_url?: string;
+}
 export interface OpenRouterModel {
     id: string;
     canonical_slug: string;
@@ -42,8 +49,10 @@ export declare class OpenRouterEngine extends AiApiEngine {
     readonly provider = "openrouter";
     private readonly apiUrl;
     private readonly modelsUrl;
+    private readonly providersUrl;
     private readonly defaultModel;
     constructor(httpService: HttpService);
     listModels(apiKey: string): Promise<OpenRouterModel[]>;
+    listProviders(): Promise<OpenRouterProvider[]>;
     sendMessage(payload: ChatPayload): Promise<ChatResponse>;
 }
