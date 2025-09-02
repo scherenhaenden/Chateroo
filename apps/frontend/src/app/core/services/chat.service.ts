@@ -393,13 +393,12 @@ export class ChatService {
    * @returns An Observable that emits StreamEvent objects.
    */
   public streamChat(payload: SendMessagePayload): Observable<StreamEvent> {
-    const url = '/api/chat';
-    const eventSource = new EventSource(url);
-
-    // Send the payload as query parameters or headers if needed
-    // (EventSource does not support request bodies)
+    console.log('Sending payload to backend:', payload); // Log payload
+    const url = `${this.apiUrl}`;
 
     return new Observable<StreamEvent>((observer) => {
+      const eventSource = new EventSource(`${url}?provider=${payload.provider}&stream=${payload.stream}`);
+
       eventSource.onmessage = (event) => {
         try {
           const data: StreamEvent = JSON.parse(event.data);

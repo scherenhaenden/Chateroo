@@ -34,4 +34,5 @@ export interface ChatSession {
   messages: ChatMessage[];
   createdAt: Date;
   updatedAt: Date;
+  provider?: string; // Added provider property
 }

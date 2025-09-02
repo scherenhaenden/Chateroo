@@ -172,90 +172,49 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
    * Sends the current message in the chat form.
    */
   public sendMessage(): void {
-    if (this.chatForm.invalid) return;
-
-    const formValue = this.chatForm.value;
-
-    // Create user message in both formats (OpenAI + Legacy)
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: formValue.prompt,
-      sender: 'user',
-      text: formValue.prompt,
-      attachments: this.currentAttachments.length > 0 ? [...this.currentAttachments] : undefined
-    };
-
-    // Add user message to current chat
-    this.chatService.addMessageToCurrentChat(userMessage);
-
-    // Add loading AI message
-    const loadingMessage: ChatMessage = {
-      role: 'assistant',
-      content: '',
-      sender: 'ai',
-      text: '',
-      isLoading: true
-    };
-    this.chatService.addMessageToCurrentChat(loadingMessage);
-
-    this.isLoading = true;
-
-    // Reset and disable input
-    const promptControl = this.chatForm.get('prompt');
-    const originalPrompt = formValue.prompt;
-    promptControl?.setValue('');
-    promptControl?.disable();
-
-    const apiKey = formValue.apiKey || this.settingsService.getApiKey(formValue.provider);
-
-    // Get current chat and prepare messages for API
-    const currentChat = this.chatService.getCurrentChat();
-    if (!currentChat) {
-      console.error('No current chat found');
+    if (this.chatForm.invalid) {
       return;
     }
 
-    // Prepare complete conversation history for API
-    const apiMessages = this.chatService.prepareMessagesForAPI(currentChat.messages);
-
-    // Add system message if canvas or live code is enabled
-    const systemMessages: ChatMessage[] = [];
-    if (this.chatOptions.canvasEnabled || this.chatOptions.liveCodeEnabled) {
-      let systemContent = 'You are a helpful assistant.';
-      if (this.chatOptions.canvasEnabled) {
-        systemContent += ' Please include HTML/CSS/SVG code that can be visualized when relevant.';
-      }
-      if (this.chatOptions.liveCodeEnabled) {
-        systemContent += ' Please include executable code examples when relevant.';
-      }
-      systemMessages.push({
-        role: 'system',
-        content: systemContent
-      });
-    }
-
+    const messageContent = this.chatForm.value.message;
+    const provider = this.chatForm.value.provider; // Use provider from the form
     const payload: SendMessagePayload = {
-      provider: formValue.provider,
-      messages: [...systemMessages, ...apiMessages], // Send complete conversation history
-      apiKey: apiKey || undefined,
-      model: formValue.provider === 'openrouter' ? formValue.model : undefined,
-      // Keep legacy prompt for backward compatibility with backend
-      prompt: originalPrompt
+      provider: provider || 'default', // Ensure provider is included
+      messages: this.messages,
+      prompt: messageContent,
+      stream: true, // Enable streaming
     };
 
-    console.log('Sending conversation history to API:', payload.messages);
+    this.isLoading = true;
+    this.messages.push({
+      role: 'user',
+      content: messageContent,
+      sender: 'user',
+      text: messageContent,
+    });
 
-    this.chatService.sendMessage(payload).subscribe({
-      next: (res) => {
-        this.handleSuccess(res);
+    this.chatService.streamChat(payload).subscribe({
+      next: (event) => {
+        if (event.content) {
+          this.messages.push({
+            role: 'assistant',
+            content: event.content,
+            sender: 'ai',
+            text: event.content,
+          });
+        }
+        if (event.done) {
+          this.isLoading = false;
+        }
       },
-      error: (err) => {
-        this.handleError(err);
+      error: (error) => {
+        console.error('Streaming error:', error);
+        this.isLoading = false;
       },
     });
 
-    // Clear attachments
-    this.currentAttachments = [];
+    // Reset the form but retain the provider field
+    this.chatForm.reset({ provider });
   }
 
   /**

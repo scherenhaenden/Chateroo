@@ -15,7 +15,7 @@ export class ChatController {
   }
 
   private logPayload(payload: SendMessageDto): void {
-    console.log('Received payload:', payload);
+    console.log('Received payload in backend:', payload); // Enhanced logging
   }
 
   @Post()

@@ -27,7 +27,7 @@ let ChatController = class ChatController {
         res.flushHeaders?.();
     }
     logPayload(payload) {
-        console.log('Received payload:', payload);
+        console.log('Received payload in backend:', payload);
     }
     async sendMessage(payload, res, accept) {
         this.logPayload(payload);
