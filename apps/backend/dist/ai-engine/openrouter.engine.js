@@ -112,6 +112,83 @@ let OpenRouterEngine = class OpenRouterEngine extends ai_api_engine_base_1.AiApi
             };
         }
     }
+    async *sendMessageStream(payload) {
+        const requestPayload = {
+            model: payload.model || 'openai/gpt-3.5-turbo',
+            messages: this.formatMessages(payload),
+            stream: true,
+            provider: {},
+            reasoning: {
+                effort: 'high'
+            }
+        };
+        const response = await fetch(this.apiUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${payload.apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestPayload)
+        });
+        if (!response.ok) {
+            throw new Error(`OpenRouter API error: ${response.statusText}`);
+        }
+        const reader = response.body?.getReader();
+        if (!reader) {
+            throw new Error('No response body reader available');
+        }
+        const decoder = new TextDecoder();
+        let buffer = '';
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done)
+                    break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed === '' || trimmed === 'data: [DONE]')
+                        continue;
+                    if (trimmed.startsWith('data: ')) {
+                        try {
+                            const jsonStr = trimmed.slice(6);
+                            const data = JSON.parse(jsonStr);
+                            const content = data.choices[0]?.delta?.content;
+                            if (content) {
+                                yield { content };
+                            }
+                            const finishReason = data.choices[0]?.finish_reason;
+                            if (finishReason) {
+                                yield { content: '', done: true };
+                                return;
+                            }
+                        }
+                        catch (error) {
+                            console.error('Error parsing stream chunk:', error);
+                        }
+                    }
+                }
+            }
+        }
+        finally {
+            reader.releaseLock();
+        }
+    }
+    formatMessages(payload) {
+        const messages = [];
+        if (payload.messages) {
+            messages.push(...payload.messages);
+        }
+        if (payload.prompt) {
+            messages.push({
+                role: 'user',
+                content: payload.prompt
+            });
+        }
+        return messages;
+    }
 };
 exports.OpenRouterEngine = OpenRouterEngine;
 exports.OpenRouterEngine = OpenRouterEngine = __decorate([

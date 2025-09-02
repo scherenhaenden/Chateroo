@@ -20,44 +20,28 @@ let ChatController = class ChatController {
     constructor(chatService) {
         this.chatService = chatService;
     }
-    async sendMessage(payload, res, accept) {
-        console.log('Received payload:', payload);
-        const isStream = payload.stream || accept?.includes('text/event-stream');
-        if (isStream) {
-            res.setHeader('Content-Type', 'text/event-stream');
-            res.setHeader('Cache-Control', 'no-cache');
-            res.setHeader('Connection', 'keep-alive');
-            res.flushHeaders?.();
-            try {
-                for await (const chunk of this.chatService.sendMessageStream(payload)) {
-                    if (chunk.content) {
-                        res.write(`data: ${JSON.stringify({ content: chunk.content })}\n\n`);
-                    }
-                    if (chunk.done) {
-                        res.write('data: [DONE]\n\n');
-                        break;
-                    }
+    async sendMessage(payload) {
+        return await this.chatService.sendMessage(payload);
+    }
+    async streamMessage(payload, response) {
+        payload.stream = true;
+        try {
+            const stream = this.chatService.sendMessageStream(payload);
+            for await (const chunk of stream) {
+                if (chunk.done) {
+                    response.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+                    break;
+                }
+                else {
+                    response.write(`data: ${JSON.stringify({ type: 'content', content: chunk.content })}\n\n`);
                 }
             }
-            catch (error) {
-                console.error('Error in chat controller:', error);
-                res.write(`data: ${JSON.stringify({ error: 'An error occurred while processing your request' })}\n\n`);
-            }
-            finally {
-                res.end();
-            }
-            return;
-        }
-        try {
-            const result = await this.chatService.sendMessage(payload);
-            res.json(result);
         }
         catch (error) {
-            console.error('Error in chat controller:', error);
-            res.status(500).json({
-                error: 'An error occurred while processing your request',
-                details: error.message,
-            });
+            response.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
+        }
+        finally {
+            response.end();
         }
     }
     async getOpenRouterModels(apiKey) {
@@ -81,14 +65,25 @@ let ChatController = class ChatController {
 };
 exports.ChatController = ChatController;
 __decorate([
-    (0, common_1.Post)(),
+    (0, common_1.Post)('message'),
     __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.Res)()),
-    __param(2, (0, common_1.Headers)('accept')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object, String]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "sendMessage", null);
+__decorate([
+    (0, common_1.Post)('stream'),
+    (0, common_1.Header)('Content-Type', 'text/event-stream'),
+    (0, common_1.Header)('Cache-Control', 'no-cache'),
+    (0, common_1.Header)('Connection', 'keep-alive'),
+    (0, common_1.Header)('Access-Control-Allow-Origin', '*'),
+    (0, common_1.Header)('Access-Control-Allow-Headers', 'Cache-Control'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "streamMessage", null);
 __decorate([
     (0, common_1.Get)('openrouter/models'),
     __param(0, (0, common_1.Query)('apiKey')),
@@ -103,7 +98,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "getOpenRouterProviders", null);
 exports.ChatController = ChatController = __decorate([
-    (0, common_1.Controller)('api/chat'),
+    (0, common_1.Controller)('chat'),
     __metadata("design:paramtypes", [chat_service_1.ChatService])
 ], ChatController);
 //# sourceMappingURL=chat.controller.js.map

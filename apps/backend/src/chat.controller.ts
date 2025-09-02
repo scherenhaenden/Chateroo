@@ -1,85 +1,49 @@
-import { Controller, Post, Body, Res, Headers, Get, Query } from '@nestjs/common';
-import type { Response } from 'express';
+import { Controller, Post, Body, Res, Header, Get, Query } from '@nestjs/common';
+import { Response } from 'express';
 import { ChatService } from './chat.service';
+import { ChatPayload } from './ai-engine/ai-api-engine.base';
 
-export interface ChatMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  attachments?: {
-    name: string;
-    type: string;
-    base64: string;
-    size: number;
-  }[];
-}
-
-export interface SendMessageDto {
-  provider: string;
-  messages?: ChatMessage[]; // New format with conversation history
-  prompt?: string; // Legacy format for backward compatibility
-  apiKey?: string;
-  model?: string;
-  stream?: boolean;
-  attachments?: {
-    name: string;
-    type: string;
-    base64: string;
-    size: number;
-  }[];
-}
-
-@Controller('api/chat')
+@Controller('chat')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
-  @Post()
-  async sendMessage(
-    @Body() payload: SendMessageDto,
-    @Res() res: Response,
-    @Headers('accept') accept?: string,
+  @Post('message')
+  async sendMessage(@Body() payload: ChatPayload) {
+    return await this.chatService.sendMessage(payload);
+  }
+
+  @Post('stream')
+  @Header('Content-Type', 'text/event-stream')
+  @Header('Cache-Control', 'no-cache')
+  @Header('Connection', 'keep-alive')
+  @Header('Access-Control-Allow-Origin', '*')
+  @Header('Access-Control-Allow-Headers', 'Cache-Control')
+  async streamMessage(
+    @Body() payload: ChatPayload,
+    @Res() response: Response,
   ) {
-    console.log('Received payload:', payload);
-
-    const isStream = payload.stream || accept?.includes('text/event-stream');
-
-    if (isStream) {
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      (res as any).flushHeaders?.();
-
-      try {
-        for await (const chunk of this.chatService.sendMessageStream(payload)) {
-          if (chunk.content) {
-            res.write(
-              `data: ${JSON.stringify({ content: chunk.content })}\n\n`,
-            );
-          }
-          if (chunk.done) {
-            res.write('data: [DONE]\n\n');
-            break;
-          }
-        }
-      } catch (error) {
-        console.error('Error in chat controller:', error);
-        res.write(
-          `data: ${JSON.stringify({ error: 'An error occurred while processing your request' })}\n\n`,
-        );
-      } finally {
-        res.end();
-      }
-      return;
-    }
+    // Set streaming payload
+    payload.stream = true;
 
     try {
-      const result = await this.chatService.sendMessage(payload);
-      res.json(result);
+      const stream = this.chatService.sendMessageStream(payload);
+
+      for await (const chunk of stream) {
+        if (chunk.done) {
+          response.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+          break;
+        } else {
+          response.write(
+            `data: ${JSON.stringify({ type: 'content', content: chunk.content })}\n\n`,
+          );
+        }
+      }
     } catch (error) {
-      console.error('Error in chat controller:', error);
-      res.status(500).json({
-        error: 'An error occurred while processing your request',
-        details: error.message,
-      });
+      response.write(
+        `data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`,
+      );
+    } finally {
+      response.end();
     }
   }
 

@@ -40,7 +40,9 @@ export abstract class AiApiEngine {
    * Sends a chat message with streaming support.
    * Returns an AsyncIterableIterator for real-time response chunks.
    */
-  public async* sendMessageStream?(payload: ChatPayload): AsyncIterableIterator<StreamChunk> {
+  public async *sendMessageStream?(
+    payload: ChatPayload,
+  ): AsyncIterableIterator<StreamChunk> {
     // Fallback für Engines ohne Streaming-Support
     const response = await this.sendMessage(payload);
     yield { content: response.content, done: true };

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { AiApiEngine, ChatPayload, ChatResponse } from './ai-api-engine.base';
+import { AiApiEngine, ChatPayload, ChatResponse, StreamChunk, ChatMessage } from './ai-api-engine.base';
 
 export interface OpenRouterProvider {
   name: string;
@@ -50,6 +50,60 @@ export interface TopProvider {
   context_length?: number;
   max_completion_tokens?: number;
   is_moderated: boolean;
+}
+
+interface OpenRouterMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+interface OpenRouterPayload {
+  model: string;
+  messages: OpenRouterMessage[];
+  stream?: boolean;
+  provider?: any;
+  reasoning?: {
+    effort: string;
+  };
+}
+
+interface OpenRouterStreamResponse {
+  id: string;
+  provider: string;
+  model: string;
+  object: string;
+  created: number;
+  choices: {
+    logprobs?: any;
+    finish_reason?: string;
+    native_finish_reason?: string;
+    index: number;
+    delta?: {
+      role?: string;
+      content?: string;
+      refusal?: any;
+      reasoning?: any;
+    };
+    message?: {
+      role: string;
+      content: string;
+      refusal?: any;
+      reasoning?: any;
+    };
+  }[];
+  system_fingerprint?: any;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+    prompt_tokens_details?: {
+      cached_tokens: number;
+      audio_tokens: number;
+    };
+    completion_tokens_details?: {
+      reasoning_tokens: number;
+    };
+  };
 }
 
 @Injectable()
@@ -189,5 +243,95 @@ export class OpenRouterEngine extends AiApiEngine {
         content: 'Sorry, there was an error communicating with OpenRouter. Please try again.',
       };
     }
+  }
+
+  public async *sendMessageStream(payload: ChatPayload): AsyncIterableIterator<StreamChunk> {
+    const requestPayload: OpenRouterPayload = {
+      model: payload.model || 'openai/gpt-3.5-turbo',
+      messages: this.formatMessages(payload),
+      stream: true,
+      provider: {},
+      reasoning: {
+        effort: 'high'
+      }
+    };
+
+    const response = await fetch(this.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${payload.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestPayload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.statusText}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body reader available');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed === '' || trimmed === 'data: [DONE]') continue;
+
+          if (trimmed.startsWith('data: ')) {
+            try {
+              const jsonStr = trimmed.slice(6);
+              const data: OpenRouterStreamResponse = JSON.parse(jsonStr);
+
+              const content = data.choices[0]?.delta?.content;
+              if (content) {
+                yield { content };
+              }
+
+              const finishReason = data.choices[0]?.finish_reason;
+              if (finishReason) {
+                yield { content: '', done: true };
+                return;
+              }
+            } catch (error) {
+              console.error('Error parsing stream chunk:', error);
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  private formatMessages(payload: ChatPayload): OpenRouterMessage[] {
+    const messages: OpenRouterMessage[] = [];
+
+    // Add existing messages if provided
+    if (payload.messages) {
+      messages.push(...payload.messages);
+    }
+
+    // Add the current prompt as user message
+    if (payload.prompt) {
+      messages.push({
+        role: 'user',
+        content: payload.prompt
+      });
+    }
+
+    return messages;
   }
 }
