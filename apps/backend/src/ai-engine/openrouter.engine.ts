@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { AiApiEngine, ChatPayload, ChatResponse } from './ai-api-engine.base';
+import { AiApiEngine, ChatPayload, ChatResponse, StreamChunk } from './ai-api-engine.base';
 
 export interface OpenRouterProvider {
   name: string;
@@ -188,6 +188,99 @@ export class OpenRouterEngine extends AiApiEngine {
       return {
         content: 'Sorry, there was an error communicating with OpenRouter. Please try again.',
       };
+    }
+  }
+
+  /**
+   * Sends a streaming message to OpenRouter API
+   */
+  public async *sendMessageStream(payload: ChatPayload): AsyncIterableIterator<StreamChunk> {
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${payload.apiKey}`,
+      'HTTP-Referer': 'https://chateroo.app',
+      'X-Title': 'Chateroo',
+    };
+
+    // Use the messages from payload if available, otherwise fallback to simple prompt
+    const messages =
+      payload.messages && payload.messages.length > 0
+        ? payload.messages
+        : [{ role: 'user', content: payload.prompt }];
+
+    const body = {
+      model: payload.model ?? this.defaultModel,
+      messages: messages,
+      stream: true,
+      // Add reasoning if supported by model
+      ...(payload.model?.includes('reasoning') && {
+        reasoning: {
+          effort: 'high',
+        },
+      }),
+    };
+
+    try {
+      const response = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenRouter API error: ${response.statusText} - ${errorText}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body reader available');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed === '' || trimmed === 'data: [DONE]') continue;
+
+            if (trimmed.startsWith('data: ')) {
+              try {
+                const jsonStr = trimmed.slice(6);
+                const data = JSON.parse(jsonStr);
+
+                const content = data.choices?.[0]?.delta?.content;
+                if (content) {
+                  yield { content };
+                }
+
+                const finishReason = data.choices?.[0]?.finish_reason;
+                if (finishReason) {
+                  yield { content: '', done: true };
+                  return;
+                }
+              } catch (error) {
+                console.error('Error parsing stream chunk:', error);
+                continue;
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    } catch (error) {
+      console.error('Streaming error:', error);
+      yield { content: `Error: ${error.message}`, done: true };
     }
   }
 }

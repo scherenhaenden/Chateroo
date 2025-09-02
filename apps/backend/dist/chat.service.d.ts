@@ -1,6 +1,5 @@
 import { EngineRegistryService } from './ai-engine/engine-registry.service';
 import { ChatResponse, StreamChunk } from './ai-engine/ai-api-engine.base';
-import { OpenRouterModel } from './ai-engine/openrouter.engine';
 export interface ChatMessage {
     role: 'user' | 'assistant' | 'system';
     content: string;
@@ -11,12 +10,13 @@ export interface ChatMessage {
         size: number;
     }[];
 }
-export interface ChatServicePayload {
+export interface SendMessageDto {
     provider: string;
     messages?: ChatMessage[];
     prompt?: string;
     apiKey?: string;
     model?: string;
+    stream?: boolean;
     attachments?: {
         name: string;
         type: string;
@@ -27,10 +27,8 @@ export interface ChatServicePayload {
 export declare class ChatService {
     private readonly engineRegistry;
     constructor(engineRegistry: EngineRegistryService);
-    sendMessage(payload: ChatServicePayload): Promise<ChatResponse>;
-    sendMessageStream(payload: ChatServicePayload): AsyncIterableIterator<StreamChunk>;
-    private extractPromptFromPayload;
-    private convertMessagesToConversationalPrompt;
-    getOpenRouterModels(apiKey?: string): Promise<OpenRouterModel[]>;
-    getOpenRouterProviders(): Promise<any[]>;
+    sendMessage(payload: SendMessageDto): Promise<ChatResponse>;
+    sendMessageStream(payload: SendMessageDto): AsyncIterableIterator<StreamChunk>;
+    getOpenRouterModels(apiKey?: string): Promise<import("./ai-engine/openrouter.engine").OpenRouterModel[]>;
+    getOpenRouterProviders(): Promise<import("./ai-engine/openrouter.engine").OpenRouterProvider[]>;
 }

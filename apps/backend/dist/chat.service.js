@@ -17,38 +17,33 @@ let ChatService = class ChatService {
     constructor(engineRegistry) {
         this.engineRegistry = engineRegistry;
     }
-    sendMessage(payload) {
-        const engine = this.engineRegistry.get(payload.provider);
+    async sendMessage(payload) {
+        const engine = this.engineRegistry.getEngine(payload.provider || 'openrouter');
         if (!engine) {
-            throw new Error(`Provider ${payload.provider} not supported`);
+            throw new Error(`Engine for provider "${payload.provider}" not found`);
         }
-        const prompt = this.extractPromptFromPayload(payload);
-        console.log('Extracted prompt from payload:', prompt);
-        console.log('Original payload messages:', payload.messages);
         const chatPayload = {
-            prompt: prompt,
+            prompt: payload.prompt || '',
+            messages: payload.messages,
             apiKey: payload.apiKey,
             model: payload.model,
-            attachments: payload.attachments || payload.messages?.[payload.messages.length - 1]?.attachments,
+            stream: false,
+            attachments: payload.attachments,
         };
-        return engine.sendMessage(chatPayload);
+        return await engine.sendMessage(chatPayload);
     }
     async *sendMessageStream(payload) {
-        const engine = this.engineRegistry.get(payload.provider);
+        const engine = this.engineRegistry.getEngine(payload.provider || 'openrouter');
         if (!engine) {
-            yield {
-                content: `Provider ${payload.provider} not supported`,
-                done: true,
-            };
-            return;
+            throw new Error(`Engine for provider "${payload.provider}" not found`);
         }
-        const prompt = this.extractPromptFromPayload(payload);
         const chatPayload = {
-            prompt: prompt,
+            prompt: payload.prompt || '',
+            messages: payload.messages,
             apiKey: payload.apiKey,
             model: payload.model,
-            attachments: payload.attachments || payload.messages?.[payload.messages.length - 1]?.attachments,
             stream: true,
+            attachments: payload.attachments,
         };
         if (engine.sendMessageStream) {
             yield* engine.sendMessageStream(chatPayload);
@@ -58,61 +53,17 @@ let ChatService = class ChatService {
             yield { content: response.content, done: true };
         }
     }
-    extractPromptFromPayload(payload) {
-        if (payload.messages && payload.messages.length > 0) {
-            return this.convertMessagesToConversationalPrompt(payload.messages);
-        }
-        if (payload.prompt) {
-            return payload.prompt;
-        }
-        throw new Error('No prompt or messages provided');
-    }
-    convertMessagesToConversationalPrompt(messages) {
-        let conversationalPrompt = '';
-        const systemMessages = messages.filter(msg => msg.role === 'system');
-        if (systemMessages.length > 0) {
-            conversationalPrompt += systemMessages.map(msg => msg.content).join('\n') + '\n\n';
-        }
-        const conversationMessages = messages.filter(msg => msg.role !== 'system');
-        if (conversationMessages.length > 1) {
-            conversationalPrompt += 'Previous conversation:\n';
-            for (let i = 0; i < conversationMessages.length - 1; i++) {
-                const msg = conversationMessages[i];
-                if (msg.role === 'user') {
-                    conversationalPrompt += `User: ${msg.content}\n`;
-                }
-                else if (msg.role === 'assistant') {
-                    conversationalPrompt += `Assistant: ${msg.content}\n`;
-                }
-            }
-            conversationalPrompt += '\nCurrent question:\n';
-        }
-        const lastMessage = conversationMessages[conversationMessages.length - 1];
-        if (lastMessage && lastMessage.role === 'user') {
-            conversationalPrompt += lastMessage.content;
-        }
-        return conversationalPrompt;
-    }
     async getOpenRouterModels(apiKey) {
-        const engine = this.engineRegistry.get('openrouter');
+        const engine = this.engineRegistry.getEngine('openrouter');
         if (!engine) {
-            throw new Error('OpenRouter engine not available');
+            throw new Error('OpenRouter engine not found');
         }
-        if (!apiKey) {
-            try {
-                return await engine.listModels('');
-            }
-            catch (error) {
-                console.log('No API key provided for OpenRouter models, returning empty list');
-                return [];
-            }
-        }
-        return await engine.listModels(apiKey);
+        return await engine.listModels(apiKey || '');
     }
     async getOpenRouterProviders() {
-        const engine = this.engineRegistry.get('openrouter');
+        const engine = this.engineRegistry.getEngine('openrouter');
         if (!engine) {
-            throw new Error('OpenRouter engine not available');
+            throw new Error('OpenRouter engine not found');
         }
         return await engine.listProviders();
     }

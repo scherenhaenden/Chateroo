@@ -27,37 +27,39 @@ let ChatController = class ChatController {
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('Connection', 'keep-alive');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Headers', 'Cache-Control');
             res.flushHeaders?.();
             try {
-                for await (const chunk of this.chatService.sendMessageStream(payload)) {
-                    if (chunk.content) {
-                        res.write(`data: ${JSON.stringify({ content: chunk.content })}\n\n`);
-                    }
+                const stream = this.chatService.sendMessageStream(payload);
+                for await (const chunk of stream) {
                     if (chunk.done) {
-                        res.write('data: [DONE]\n\n');
+                        res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
                         break;
+                    }
+                    else {
+                        res.write(`data: ${JSON.stringify({
+                            type: 'content',
+                            content: chunk.content,
+                        })}\n\n`);
                     }
                 }
             }
             catch (error) {
-                console.error('Error in chat controller:', error);
-                res.write(`data: ${JSON.stringify({ error: 'An error occurred while processing your request' })}\n\n`);
+                res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
             }
             finally {
                 res.end();
             }
-            return;
         }
-        try {
-            const result = await this.chatService.sendMessage(payload);
-            res.json(result);
-        }
-        catch (error) {
-            console.error('Error in chat controller:', error);
-            res.status(500).json({
-                error: 'An error occurred while processing your request',
-                details: error.message,
-            });
+        else {
+            try {
+                const response = await this.chatService.sendMessage(payload);
+                res.json(response);
+            }
+            catch (error) {
+                res.status(500).json({ error: error.message });
+            }
         }
     }
     async getOpenRouterModels(apiKey) {

@@ -300,7 +300,7 @@ export class ChatService {
           'Content-Type': 'application/json',
           'Accept': 'text/event-stream',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
@@ -309,52 +309,48 @@ export class ChatService {
 
       const reader = response.body?.getReader();
       if (!reader) {
-        throw new Error('No reader available');
+        throw new Error('No response body reader available');
       }
 
       const decoder = new TextDecoder();
       let buffer = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        if (done) {
-          observer.next({ content: '', done: true });
-          observer.complete();
-          break;
-        }
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed === '' || trimmed.startsWith(':')) continue;
 
-        for (const line of lines) {
-          if (line.trim() === '') continue;
+            if (trimmed.startsWith('data: ')) {
+              try {
+                const jsonStr = trimmed.slice(6);
+                const data = JSON.parse(jsonStr);
 
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim();
-            if (data === '[DONE]') {
-              observer.next({ content: '', done: true });
-              observer.complete();
-              return;
-            }
-
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.content) {
-                observer.next({ content: parsed.content });
-              } else if (parsed.error) {
-                observer.error(new Error(parsed.error));
-                return;
-              }
-            } catch (e) {
-              // If it's not JSON, treat it as plain text content
-              if (data && data !== '[DONE]') {
-                observer.next({ content: data });
+                if (data.type === 'content' && data.content) {
+                  observer.next({ content: data.content });
+                } else if (data.type === 'done') {
+                  observer.next({ content: '', done: true });
+                  observer.complete();
+                  return;
+                } else if (data.type === 'error') {
+                  observer.error(new Error(data.error));
+                  return;
+                }
+              } catch (parseError) {
+                console.error('Error parsing SSE data:', parseError);
               }
             }
           }
         }
+      } finally {
+        reader.releaseLock();
       }
     } catch (error) {
       console.error('Streaming error:', error);

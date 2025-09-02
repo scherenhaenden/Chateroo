@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { AiApiEngine, ChatPayload, ChatResponse } from './ai-api-engine.base';
+import { AiApiEngine, ChatPayload, ChatResponse, StreamChunk } from './ai-api-engine.base';
 export interface OpenRouterProvider {
     name: string;
     slug: string;
@@ -55,4 +55,5 @@ export declare class OpenRouterEngine extends AiApiEngine {
     listModels(apiKey: string): Promise<OpenRouterModel[]>;
     listProviders(): Promise<OpenRouterProvider[]>;
     sendMessage(payload: ChatPayload): Promise<ChatResponse>;
+    sendMessageStream(payload: ChatPayload): AsyncIterableIterator<StreamChunk>;
 }

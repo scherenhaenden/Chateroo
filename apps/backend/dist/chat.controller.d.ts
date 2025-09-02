@@ -29,5 +29,5 @@ export declare class ChatController {
     constructor(chatService: ChatService);
     sendMessage(payload: SendMessageDto, res: Response, accept?: string): Promise<void>;
     getOpenRouterModels(apiKey?: string): Promise<import("./ai-engine/openrouter.engine").OpenRouterModel[]>;
-    getOpenRouterProviders(): Promise<any[]>;
+    getOpenRouterProviders(): Promise<import("./ai-engine/openrouter.engine").OpenRouterProvider[]>;
 }
