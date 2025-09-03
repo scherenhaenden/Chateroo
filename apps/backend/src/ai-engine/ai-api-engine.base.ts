@@ -1,3 +1,5 @@
+import { ChatMessage } from '../dtos/chat.dto';
+
 export interface ChatAttachment {
   name: string;
   type: string;
@@ -11,6 +13,7 @@ export interface ChatPayload {
   model?: string;
   attachments?: ChatAttachment[];
   stream?: boolean; // Neue Option für Streaming
+  messages?: ChatMessage[]; // Array of conversation messages
 }
 
 export interface ChatResponse {

@@ -1,6 +1,8 @@
-import { Component, Input, OnChanges, SimpleChanges, OnDestroy } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, OnDestroy, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { CodeSessionStorageService, CodeSession } from '../../services/code-session-storage.service';
+import { debounceTime, Subject, takeUntil } from 'rxjs';
 
 /**
  * LiveCodeComponent
@@ -14,7 +16,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
   templateUrl: './live-code.component.html',
   styleUrls: ['./live-code.component.css']
 })
-export class LiveCodeComponent implements OnChanges, OnDestroy {
+export class LiveCodeComponent implements OnInit, OnChanges, OnDestroy {
   @Input() public code = '';
   @Input() public language = 'javascript';
 
@@ -23,20 +25,72 @@ export class LiveCodeComponent implements OnChanges, OnDestroy {
   public error: string = '';
   public isRunning = false;
 
-  private worker?: Worker;
+  // Session management
+  public currentSession: CodeSession | null = null;
+  public sessions: CodeSession[] = [];
+  public showSessionMenu = false;
 
-  public constructor(private sanitizer: DomSanitizer) {}
+  private worker?: Worker;
+  private destroy$ = new Subject<void>();
+  private autoSave$ = new Subject<void>();
+
+  public constructor(
+    private sanitizer: DomSanitizer,
+    private codeStorage: CodeSessionStorageService
+  ) {}
+
+  public ngOnInit(): void {
+    // Subscribe to sessions
+    this.codeStorage.sessions$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(sessions => {
+        this.sessions = sessions;
+
+        // If we don't have a current session but there are saved sessions,
+        // load the most recent one
+        if (!this.currentSession && sessions.length > 0) {
+          this.loadSession(sessions[0]); // Most recent session
+        } else if (!this.currentSession && sessions.length === 0) {
+          // Only create a new session if there are no saved sessions
+          this.createNewSession();
+        }
+      });
+
+    // Auto-save debounced
+    this.autoSave$
+      .pipe(
+        debounceTime(2000), // Wait 2 seconds after last change
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => {
+        this.autoSaveSession();
+      });
+
+    // Don't create initial session here - let the sessions$ subscription handle it
+  }
 
   public ngOnChanges(changes: SimpleChanges): void {
     if ('code' in changes && this.code) {
       this.highlightCode();
       this.executeCode();
+      this.triggerAutoSave();
     }
   }
 
   public ngOnDestroy(): void {
     if (this.worker) {
       this.worker.terminate();
+    }
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // Close session menu when clicking outside
+  @HostListener('document:click', ['$event'])
+  public onDocumentClick(event: Event): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.relative')) {
+      this.showSessionMenu = false;
     }
   }
 
@@ -107,5 +161,93 @@ export class LiveCodeComponent implements OnChanges, OnDestroy {
 
   public runCode(): void {
     this.executeCode();
+    this.triggerAutoSave();
+  }
+
+  // Session Management Methods
+  public createNewSession(): void {
+    const newSession: CodeSession = {
+      id: this.codeStorage.generateSessionId(),
+      title: this.codeStorage.generateSessionTitle(this.code, this.language),
+      code: this.code || '// Start coding here...',
+      language: this.language,
+      output: this.output,
+      error: this.error,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    this.currentSession = newSession;
+    this.codeStorage.saveSession(newSession);
+    this.showSessionMenu = false;
+  }
+
+  public loadSession(session: CodeSession): void {
+    this.currentSession = session;
+    this.code = session.code;
+    this.language = session.language;
+    this.output = session.output;
+    this.error = session.error;
+    this.highlightCode();
+    this.showSessionMenu = false;
+  }
+
+  public async deleteSession(sessionId: string, event?: Event): Promise<void> {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    if (confirm('¿Estás seguro de que quieres eliminar esta sesión?')) {
+      await this.codeStorage.deleteSession(sessionId);
+
+      // If current session was deleted, create a new one
+      if (this.currentSession?.id === sessionId) {
+        this.createNewSession();
+      }
+    }
+  }
+
+  public toggleSessionMenu(): void {
+    this.showSessionMenu = !this.showSessionMenu;
+  }
+
+  public getSessionPreview(session: CodeSession): string {
+    return session.code.length > 50 ?
+      session.code.substring(0, 50) + '...' :
+      session.code || 'Empty session';
+  }
+
+  public formatDate(date: Date): string {
+    return new Date(date).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  private triggerAutoSave(): void {
+    this.autoSave$.next();
+  }
+
+  private async autoSaveSession(): Promise<void> {
+    if (!this.currentSession) {
+      this.createNewSession();
+      return;
+    }
+
+    const updatedSession: CodeSession = {
+      ...this.currentSession,
+      code: this.code,
+      language: this.language,
+      output: this.output,
+      error: this.error,
+      title: this.codeStorage.generateSessionTitle(this.code, this.language),
+      updatedAt: new Date()
+    };
+
+    this.currentSession = updatedSession;
+    await this.codeStorage.saveSession(updatedSession);
   }
 }

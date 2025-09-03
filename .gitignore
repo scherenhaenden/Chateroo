@@ -3,4 +3,6 @@
 .env
 *.log
 node_modules/
-.idea/
+.idea
+src-tauri/binaries/
+

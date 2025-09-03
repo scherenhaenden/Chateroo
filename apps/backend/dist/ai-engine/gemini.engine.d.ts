@@ -7,6 +7,4 @@ export declare class GeminiEngine extends AiApiEngine {
     constructor(httpService: HttpService);
     sendMessageStream(payload: ChatPayload): AsyncIterableIterator<StreamChunk>;
     sendMessage(payload: ChatPayload): Promise<ChatResponse>;
-    private formatFileSize;
-    private isTextFile;
 }
