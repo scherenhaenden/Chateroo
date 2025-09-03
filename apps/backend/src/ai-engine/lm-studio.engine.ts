@@ -58,19 +58,19 @@ export class LmStudioEngine extends AiApiEngine {
   }
 
   /**
-   * Streaming version of sendMessage for real-time responses
+   * Streaming version of sendMessage for real-time responses.
    */
   public async *sendMessageStream(
     payload: ChatPayload,
   ): AsyncIterableIterator<StreamChunk> {
-    try {
-      const requestBody = {
-        model: 'local-model',
-        messages: [{ role: 'user', content: payload.prompt }],
-        temperature: 0.7,
-        stream: true, // Enable streaming
-      };
+    const requestBody = {
+      model: 'local-model',
+      messages: [{ role: 'user', content: payload.prompt }],
+      temperature: 0.7,
+      stream: true, // Enable streaming
+    };
 
+    try {
       const response = await firstValueFrom(
         this.httpService.post(this.apiUrl, requestBody, {
           headers: { 'Content-Type': 'application/json' },
@@ -86,10 +86,8 @@ export class LmStudioEngine extends AiApiEngine {
         buffer = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.trim() === '') continue;
-
           if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim();
+            const data = line.slice(6);
             if (data === '[DONE]') {
               yield { content: '', done: true };
               return;
@@ -108,9 +106,12 @@ export class LmStudioEngine extends AiApiEngine {
         }
       }
     } catch (error: any) {
-      console.error('Fehler bei der Streaming-Kommunikation mit LM Studio:', error.message);
+      console.error(
+        'Fehler bei der Streaming-Kommunikation mit LM Studio:',
+        error.response?.data || error.message,
+      );
       yield {
-        content: `Fehler bei der Verbindung mit LM Studio. Stelle sicher, dass der Server läuft. (Details: ${error.message})`,
+        content: 'Sorry, there was an error communicating with LM Studio.',
         done: true,
       };
     }

@@ -5,12 +5,14 @@ import { ChatMessageComponent } from '../chat-message/chat-message.component';
 import { CanvasComponent } from '../canvas/canvas.component';
 import { LiveCodeComponent } from '../live-code/live-code.component';
 import { FileUploadComponent } from '../file-upload/file-upload.component';
+import { AutocompleteComponent, AutocompleteOption } from '../autocomplete/autocomplete.component';
 
 import {
   ChatService,
   SendMessagePayload,
   ChatApiResponse,
   OpenRouterModel,
+  OpenRouterProvider,
 } from '../../services/chat.service';
 import { SettingsService } from '../../services/settings.service';
 import { ChatMessage, ChatOptions, ChatAttachment, ChatSession } from '../../../models/chat.model';
@@ -19,7 +21,7 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ChatMessageComponent, CanvasComponent, LiveCodeComponent, FileUploadComponent],
+  imports: [CommonModule, ReactiveFormsModule, ChatMessageComponent, CanvasComponent, LiveCodeComponent, FileUploadComponent, AutocompleteComponent],
   templateUrl: './chat.component.html',
   host: { class: 'flex flex-col flex-1 min-h-0' },
 })
@@ -41,6 +43,15 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   public openRouterProviders: string[] = [];
   private openRouterModels: OpenRouterModel[] = [];
   public filteredOpenRouterModels: OpenRouterModel[] = [];
+
+  // Neue Eigenschaften für Provider-Dropdown
+  public allOpenRouterProviders: OpenRouterProvider[] = [];
+  public selectedOpenRouterProvider: OpenRouterProvider | null = null;
+
+  // Autocomplete options for the three OpenRouter dropdowns
+  public allOpenRouterProviderOptions: AutocompleteOption[] = [];
+  public openRouterProviderOptions: AutocompleteOption[] = [];
+  public filteredOpenRouterModelOptions: AutocompleteOption[] = [];
 
   // File upload properties
   public currentAttachments: ChatAttachment[] = [];
@@ -94,10 +105,17 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     );
   }
 
+  /**
+   * Returns true if the given provider requires an API key.
+   * @param provider The provider name
+   */
   public requiresApiKey(provider: string | null | undefined): boolean {
     return provider ? this.providersWithApiKey.includes(provider) : false;
   }
 
+  /**
+   * Angular lifecycle hook. Loads settings and sets up form listeners.
+   */
   public async ngOnInit(): Promise<void> {
     await this.settingsService.load();
 
@@ -116,10 +134,17 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
       if (provider === 'openrouter') {
         orProviderControl?.setValidators([Validators.required]);
         modelControl?.setValidators([Validators.required]);
-        void this.loadOpenRouterModels();
+        // Automatically load OpenRouter models when provider is selected
+        void this.loadOpenRouterModelsAutomatically();
+        // Load OpenRouter providers
+        void this.loadOpenRouterProviders();
       } else {
         orProviderControl?.clearValidators();
         modelControl?.clearValidators();
+        // Clear OpenRouter data when switching away
+        this.openRouterProviders = [];
+        this.openRouterModels = [];
+        this.filteredOpenRouterModels = [];
       }
       orProviderControl?.updateValueAndValidity();
       modelControl?.updateValueAndValidity();
@@ -134,14 +159,18 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
         this.loadOpenRouterModels();
       }
     });
-
-    // Remove the manual message push - this is now handled by ChatService
   }
 
+  /**
+   * Angular lifecycle hook. Unsubscribes from all subscriptions.
+   */
   ngOnDestroy() {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
+  /**
+   * Sends the current message in the chat form.
+   */
   public sendMessage(): void {
     if (this.chatForm.invalid) return;
 
@@ -229,6 +258,10 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.currentAttachments = [];
   }
 
+  /**
+   * Handles a successful response from the chat API.
+   * @param res The API response
+   */
   private handleSuccess(res: ChatApiResponse): void {
     const codeInfo = this.extractCodeFromResponse(res.content);
 
@@ -246,6 +279,10 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.togglePrompt(true);
   }
 
+  /**
+   * Handles an error response from the chat API.
+   * @param err The error object
+   */
   private handleError(err: any): void {
     const errorMessage = `Error: ${err.error?.message || 'Failed to communicate with the backend.'}`;
 
@@ -262,70 +299,53 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.togglePrompt(true);
   }
 
-  // Neue Methode für Streaming-Chunks
-  private handleStreamChunk(chunk: { content: string; done?: boolean }): void {
-    const lastIndex = this.messages.length - 1;
-    const lastMessage = this.messages[lastIndex];
-
-    if (lastMessage && lastMessage.sender === 'ai') {
-      if (chunk.done) {
-        // Stream ist beendet
-        lastMessage.isLoading = false;
-        const codeInfo = this.extractCodeFromResponse(lastMessage.text || lastMessage.content || '');
-        Object.assign(lastMessage, codeInfo);
-        this.isLoading = false;
-        this.togglePrompt(true);
-      } else {
-        // Füge neuen Content zum bestehenden Text hinzu
-        const currentText = lastMessage.text || lastMessage.content || '';
-        lastMessage.text = currentText + chunk.content;
-        lastMessage.content = currentText + chunk.content;
-        lastMessage.isLoading = true; // Zeige weiterhin Loading-Animation
-      }
-    }
-  }
-
-  // Neue Methode für Stream-Completion
-  private handleStreamComplete(): void {
-    const lastIndex = this.messages.length - 1;
-    const lastMessage = this.messages[lastIndex];
-
-    if (lastMessage && lastMessage.sender === 'ai') {
-      lastMessage.isLoading = false;
-      const codeInfo = this.extractCodeFromResponse(lastMessage.text || lastMessage.content || '');
-      Object.assign(lastMessage, codeInfo);
-    }
-
-    this.isLoading = false;
-    this.togglePrompt(true);
-  }
-
-  // Nuevos métodos para Canvas y Live Code
+  /**
+   * Toggles the canvas option in chat options.
+   */
   public toggleCanvas(): void {
     this.chatOptions.canvasEnabled = !this.chatOptions.canvasEnabled;
   }
 
+  /**
+   * Toggles the live code option in chat options.
+   */
   public toggleLiveCode(): void {
     this.chatOptions.liveCodeEnabled = !this.chatOptions.liveCodeEnabled;
   }
 
+  /**
+   * Opens the canvas modal dialog.
+   */
   public openCanvasModal(): void {
     this.showCanvasModal = true;
   }
 
+  /**
+   * Closes the canvas modal dialog.
+   */
   public closeCanvasModal(): void {
     this.showCanvasModal = false;
   }
 
+  /**
+   * Opens the live code modal dialog.
+   */
   public openLiveCodeModal(): void {
     this.showLiveCodeModal = true;
   }
 
+  /**
+   * Closes the live code modal dialog.
+   */
   public closeLiveCodeModal(): void {
     this.showLiveCodeModal = false;
   }
 
-  // Método para detectar código en la respuesta de IA
+  /**
+   * Extracts code information from the AI response content.
+   * @param content The response content
+   * @returns Object with code flags and code content
+   */
   private extractCodeFromResponse(content: string): { hasCanvas: boolean; hasLiveCode: boolean; canvasCode?: string; liveCode?: string } {
     const htmlRegex = /```(?:html|svg|xml)([\s\S]*?)```/i;
     const jsRegex = /```(?:javascript|js|ts|typescript)([\s\S]*?)```/i;
@@ -341,29 +361,17 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     };
   }
 
-  /** Invoked after the view has been checked to scroll to the bottom. */
+  /**
+   * Angular lifecycle hook. Scrolls the chat container to the bottom after view check.
+   */
   public ngAfterViewChecked(): void {
     this.scrollToBottom();
   }
 
-  /** Adds a user message and an AI loading message to the messages array and sets isLoading to true. */
-  private addUserAndLoadingMessages(prompt: string): void {
-    this.messages.push({
-      role: 'user',
-      content: prompt,
-      sender: 'user',
-      text: prompt
-    });
-    this.messages.push({
-      role: 'assistant',
-      content: '',
-      sender: 'ai',
-      text: '',
-      isLoading: true
-    });
-    this.isLoading = true;
-  }
-
+  /**
+   * Enables or disables the prompt input control.
+   * @param enable True to enable, false to disable
+   */
   private togglePrompt(enable: boolean): void {
     const control = this.chatForm.get('prompt');
     if (enable) {
@@ -374,9 +382,11 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
   }
 
-  // Métodos para manejar eventos desde los mensajes
+  /**
+   * Handles canvas code request from a chat message.
+   * @param code The canvas code
+   */
   public onCanvasRequested(code: string): void {
-    // Actualizar el código del canvas y abrir el modal
     const lastMessage = this.messages[this.messages.length - 1];
     if (lastMessage) {
       lastMessage.canvasCode = code;
@@ -384,8 +394,11 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.openCanvasModal();
   }
 
+  /**
+   * Handles live code request from a chat message.
+   * @param code The live code
+   */
   public onLiveCodeRequested(code: string): void {
-    // Actualizar el código live y abrir el modal
     const lastMessage = this.messages[this.messages.length - 1];
     if (lastMessage) {
       lastMessage.liveCode = code;
@@ -393,15 +406,74 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.openLiveCodeModal();
   }
 
+  /**
+   * Loads OpenRouter providers from the API.
+   */
+  private loadOpenRouterProviders(): void {
+    this.chatService.getOpenRouterProviders().subscribe({
+      next: (providers) => {
+        this.allOpenRouterProviders = providers.sort((a, b) => a.name.localeCompare(b.name));
+        this.allOpenRouterProviderOptions = this.allOpenRouterProviders.map(provider => ({
+          value: provider.slug,
+          label: provider.name
+        }));
+        if (providers.length > 0) {
+          this.selectedOpenRouterProvider = providers[0];
+        }
+      },
+      error: (error) => {
+        console.error('Error loading OpenRouter providers:', error);
+        this.allOpenRouterProviders = [];
+        this.allOpenRouterProviderOptions = [];
+        this.selectedOpenRouterProvider = null;
+      }
+    });
+  }
+
+  /**
+   * Handles OpenRouter provider selection from autocomplete
+   */
+  public onAllOpenRouterProviderSelect(option: AutocompleteOption | null): void {
+    if (option) {
+      const selectedProvider = this.allOpenRouterProviders.find(p => p.slug === option.value);
+      if (selectedProvider) {
+        this.selectedOpenRouterProvider = selectedProvider;
+      }
+    }
+  }
+
+  /**
+   * Handles OpenRouter provider selection from extracted providers autocomplete
+   */
+  public onOpenRouterProviderSelect(option: AutocompleteOption | null): void {
+    if (option) {
+      this.filterModelsForProvider(option.value);
+    }
+  }
+
+  /**
+   * Handles model selection from autocomplete
+   */
+  public onModelSelect(option: AutocompleteOption | null): void {
+    // Model selection is handled automatically by the form control
+  }
+
+  /**
+   * Loads OpenRouter models from the API.
+   */
   private loadOpenRouterModels(): void {
     const apiKey =
       this.chatForm.get('apiKey')?.value || this.settingsService.getApiKey('openrouter');
     if (!apiKey) return;
     this.chatService.getOpenRouterModels(apiKey).subscribe((models) => {
-      this.openRouterModels = models;
+      this.openRouterModels = models.sort((a, b) => a.name.localeCompare(b.name));
       this.openRouterProviders = Array.from(
-        new Set(models.map((m) => m.top_provider.id)),
-      );
+        new Set(models.map((m) => this.extractProviderFromId(m.id)))
+      ).sort();
+      this.openRouterProviderOptions = this.openRouterProviders.map(provider => ({
+        value: provider,
+        label: provider
+      }));
       const providerControl = this.chatForm.get('openRouterProvider');
       if (this.openRouterProviders.length > 0) {
         providerControl?.setValue(this.openRouterProviders[0]);
@@ -410,10 +482,68 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     });
   }
 
+  /**
+   * Automatically loads OpenRouter models when the provider is selected.
+   * This works with or without an API key.
+   */
+  private loadOpenRouterModelsAutomatically(): void {
+    const provider = this.chatForm.get('provider')?.value;
+    if (!provider || provider !== 'openrouter') return;
+
+    // Try to get API key from form or settings, but proceed even without one
+    const apiKey = this.chatForm.get('apiKey')?.value || this.settingsService.getApiKey('openrouter') || '';
+
+    // Load models with or without API key
+    this.chatService.getOpenRouterModels(apiKey).subscribe({
+      next: (models) => {
+        this.openRouterModels = models.sort((a, b) => a.name.localeCompare(b.name));
+        // Extract unique providers from the models
+        this.openRouterProviders = Array.from(
+          new Set(models.map((m) => this.extractProviderFromId(m.id)))
+        ).sort();
+        this.openRouterProviderOptions = this.openRouterProviders.map(provider => ({
+          value: provider,
+          label: provider
+        }));
+        const providerControl = this.chatForm.get('openRouterProvider');
+        if (this.openRouterProviders.length > 0) {
+          providerControl?.setValue(this.openRouterProviders[0]);
+          this.filterModelsForProvider(this.openRouterProviders[0]);
+        }
+      },
+      error: (error) => {
+        console.error('Error loading OpenRouter models:', error);
+        // Reset the dropdowns on error
+        this.openRouterProviders = [];
+        this.openRouterModels = [];
+        this.filteredOpenRouterModels = [];
+        this.openRouterProviderOptions = [];
+        this.filteredOpenRouterModelOptions = [];
+      }
+    });
+  }
+
+  /**
+   * Extracts provider name from model ID (e.g., "openai/gpt-4" -> "openai")
+   */
+  private extractProviderFromId(modelId: string): string {
+    return modelId.split('/')[0] || 'unknown';
+  }
+
+  /**
+   * Filters OpenRouter models for the selected provider.
+   * @param provider The provider name
+   */
   private filterModelsForProvider(provider: string): void {
     this.filteredOpenRouterModels = this.openRouterModels.filter(
-      (m) => m.top_provider.id === provider,
-    );
+      (m) => this.extractProviderFromId(m.id) === provider
+    ).sort((a, b) => a.name.localeCompare(b.name));
+
+    this.filteredOpenRouterModelOptions = this.filteredOpenRouterModels.map(model => ({
+      value: model.id,
+      label: model.name
+    }));
+
     const modelControl = this.chatForm.get('model');
     if (this.filteredOpenRouterModels.length > 0) {
       modelControl?.setValue(this.filteredOpenRouterModels[0].id);
@@ -422,7 +552,9 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
   }
 
-  /** Scrolls the chat container to the bottom. */
+  /**
+   * Scrolls the chat container to the bottom.
+   */
   private scrollToBottom(): void {
     const container = this.chatContainer?.nativeElement;
     if (container) {
@@ -430,16 +562,87 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
   }
 
-  // File upload event handlers
+  /**
+   * Handles file attachment changes from the file upload component.
+   * @param attachments The new attachments
+   */
   public onAttachmentsChange(attachments: ChatAttachment[]): void {
     this.currentAttachments = attachments;
   }
 
+  /**
+   * Handles file upload errors from the file upload component.
+   * @param error The error message
+   */
   public onUploadError(error: string): void {
     this.uploadError = error;
-    // Fehler nach 5 Sekunden automatisch ausblenden
+    // Hide error after 5 seconds automatically
     setTimeout(() => {
       this.uploadError = '';
     }, 5000);
+  }
+
+  /**
+   * Automatically adjusts the height of the textarea based on its content.
+   * Maximum of 4 lines, then scroll appears.
+   * @param event The input event
+   */
+  public adjustTextareaHeight(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    const minHeight = 2.5; // rem - altura mínima (1 línea)
+    const maxHeight = 6; // rem - altura máxima (4 líneas)
+
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+
+    // Calculate required height based on scroll height
+    const scrollHeight = textarea.scrollHeight;
+    const remInPixels = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const requiredHeight = scrollHeight / remInPixels;
+
+    // Set height with min/max constraints
+    if (requiredHeight <= maxHeight) {
+      textarea.style.height = Math.max(requiredHeight, minHeight) + 'rem';
+      textarea.style.overflowY = 'hidden';
+    } else {
+      textarea.style.height = maxHeight + 'rem';
+      textarea.style.overflowY = 'auto';
+    }
+  }
+
+  /**
+   * Handles keyboard events in the textarea.
+   * Enter: Sends the message
+   * Alt+Enter: New line
+   * Shift+Enter: New line
+   * @param event The keyboard event
+   */
+  public onTextareaKeydown(event: KeyboardEvent): void {
+    // If Shift+Enter, allow new line
+    if (event.shiftKey) {
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      if (event.altKey) {
+        // Alt+Enter: Allow new line - do not prevent default
+        console.log('Alt+Enter detected - allowing new line');
+        return;
+      } else {
+        // Enter only: Send message - prevent new line and send
+        console.log('Enter only detected - sending message');
+        event.preventDefault();
+        if (!this.chatForm.invalid && !this.isLoading) {
+          this.sendMessage();
+          // Refocus textarea after sending
+          setTimeout(() => {
+            const textarea = event.target as HTMLTextAreaElement;
+            textarea.focus();
+            // Reset height after clearing
+            textarea.style.height = '2.5rem';
+          }, 0);
+        }
+      }
+    }
   }
 }

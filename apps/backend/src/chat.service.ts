@@ -5,43 +5,27 @@ import {
   ChatResponse,
   StreamChunk,
 } from './ai-engine/ai-api-engine.base';
-
-export interface ChatMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  attachments?: {
-    name: string;
-    type: string;
-    base64: string;
-    size: number;
-  }[];
-}
-
-export interface ChatServicePayload {
-  provider: string;
-  messages?: ChatMessage[]; // New format with conversation history
-  prompt?: string;          // Legacy format for backward compatibility
-  apiKey?: string;
-  model?: string;
-  attachments?: {
-    name: string;
-    type: string;
-    base64: string;
-    size: number;
-  }[];
-}
+import { OpenRouterEngine, OpenRouterModel } from './ai-engine/openrouter.engine';
+import type { SendMessageDto } from './dtos/chat.dto';
 
 @Injectable()
 export class ChatService {
   constructor(private readonly engineRegistry: EngineRegistryService) {}
 
-  sendMessage(payload: ChatServicePayload): Promise<ChatResponse> {
+  private extractPromptFromPayload(payload: SendMessageDto): string {
+    if (payload.messages) {
+      return payload.messages.map((msg) => msg.content).join('\n');
+    }
+    return payload.prompt || '';
+  }
+
+  sendMessage(payload: SendMessageDto): Promise<ChatResponse> {
     const engine = this.engineRegistry.get(payload.provider);
     if (!engine) {
       throw new Error(`Provider ${payload.provider} not supported`);
     }
 
-    // Convert messages array to prompt if needed
+    // Verwende die neue Hilfsmethode zur Extraktion des Prompts
     const prompt = this.extractPromptFromPayload(payload);
     console.log('Extracted prompt from payload:', prompt);
     console.log('Original payload messages:', payload.messages);
@@ -57,7 +41,7 @@ export class ChatService {
   }
 
   async *sendMessageStream(
-    payload: ChatServicePayload,
+    payload: SendMessageDto,
   ): AsyncIterableIterator<StreamChunk> {
     const engine = this.engineRegistry.get(payload.provider);
     if (!engine) {
@@ -90,57 +74,39 @@ export class ChatService {
   }
 
   /**
-   * Extracts a prompt from the payload, supporting both new messages format and legacy prompt format
+   * Gets available OpenRouter models
    */
-  private extractPromptFromPayload(payload: ChatServicePayload): string {
-    // If we have messages array (new format), convert to conversational prompt
-    if (payload.messages && payload.messages.length > 0) {
-      return this.convertMessagesToConversationalPrompt(payload.messages);
+  async getOpenRouterModels(apiKey?: string): Promise<OpenRouterModel[]> {
+    const engine = this.engineRegistry.get('openrouter') as OpenRouterEngine;
+    if (!engine) {
+      throw new Error('OpenRouter engine not available');
     }
 
-    // Fallback to legacy prompt format
-    if (payload.prompt) {
-      return payload.prompt;
+    // If no API key provided, try to get models with a temporary/demo key
+    // or return an empty array with a message
+    if (!apiKey) {
+      try {
+        // OpenRouter's public models endpoint doesn't require authentication
+        // We'll use a minimal key or handle the request differently
+        return await engine.listModels('');
+      } catch (error) {
+        console.log('No API key provided for OpenRouter models, returning empty list');
+        return [];
+      }
     }
 
-    throw new Error('No prompt or messages provided');
+    return await engine.listModels(apiKey);
   }
 
   /**
-   * Converts messages array to a conversational prompt that includes context
+   * Gets available OpenRouter providers
    */
-  private convertMessagesToConversationalPrompt(messages: ChatMessage[]): string {
-    let conversationalPrompt = '';
-
-    // Add system messages first
-    const systemMessages = messages.filter(msg => msg.role === 'system');
-    if (systemMessages.length > 0) {
-      conversationalPrompt += systemMessages.map(msg => msg.content).join('\n') + '\n\n';
+  async getOpenRouterProviders(): Promise<any[]> {
+    const engine = this.engineRegistry.get('openrouter') as OpenRouterEngine;
+    if (!engine) {
+      throw new Error('OpenRouter engine not available');
     }
 
-    // Add conversation history
-    const conversationMessages = messages.filter(msg => msg.role !== 'system');
-
-    if (conversationMessages.length > 1) {
-      conversationalPrompt += 'Previous conversation:\n';
-      // Include all but the last message as context
-      for (let i = 0; i < conversationMessages.length - 1; i++) {
-        const msg = conversationMessages[i];
-        if (msg.role === 'user') {
-          conversationalPrompt += `User: ${msg.content}\n`;
-        } else if (msg.role === 'assistant') {
-          conversationalPrompt += `Assistant: ${msg.content}\n`;
-        }
-      }
-      conversationalPrompt += '\nCurrent question:\n';
-    }
-
-    // Add the current user message
-    const lastMessage = conversationMessages[conversationMessages.length - 1];
-    if (lastMessage && lastMessage.role === 'user') {
-      conversationalPrompt += lastMessage.content;
-    }
-
-    return conversationalPrompt;
+    return await engine.listProviders();
   }
 }
