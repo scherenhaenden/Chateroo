@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { ChatService } from '../../services/chat.service';
+import { AuthService } from '../../services/auth.service';
 import { ChatSession } from '../../../models/chat.model';
 import { Subscription } from 'rxjs';
 
@@ -12,6 +13,9 @@ import { Subscription } from 'rxjs';
   templateUrl: './layout.component.html',
 })
 export class LayoutComponent implements OnInit, OnDestroy {
+  public readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+
   public chatSessions: ChatSession[] = [];
   public currentChat: ChatSession | null = null;
   private subscriptions: Subscription[] = [];
@@ -38,12 +42,41 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
-  newChat() {
+  public newChat() {
     this.chatService.requestNewChat();
   }
 
-  switchToChat(chatId: string) {
+  public switchToChat(chatId: string) {
     this.chatService.switchToChat(chatId);
+  }
+
+  public async deleteChat(chatId: string, event: Event): Promise<void> {
+    // Prevent the click from bubbling up to the parent (which would switch to the chat)
+    event.stopPropagation();
+
+    // Don't allow deleting the last chat
+    if (this.chatSessions.length <= 1) {
+      return;
+    }
+
+    // Show confirmation dialog
+    if (confirm('¿Estás seguro de que quieres eliminar este chat? Esta acción no se puede deshacer.')) {
+      try {
+        await this.chatService.deleteChat(chatId);
+      } catch (error) {
+        console.error('Error deleting chat:', error);
+        alert('Error al eliminar el chat. Por favor, inténtalo de nuevo.');
+      }
+    }
+  }
+
+  navigateToLogin(): void {
+    this.router.navigate(['/login']);
+  }
+
+  async logout(): Promise<void> {
+    await this.authService.logout();
+    // Bleibe im Chat, auch nach Logout
   }
 
   formatDate(date: Date): string {

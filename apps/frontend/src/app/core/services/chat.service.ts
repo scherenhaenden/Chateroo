@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject, BehaviorSubject } from 'rxjs';
 import { ChatSession, ChatMessage } from '../../models/chat.model';
+import { ChatSessionStorageService } from './chat-session-storage.service';
 
 export interface SendMessagePayload {
   provider: string;
@@ -29,10 +30,47 @@ export interface StreamEvent {
   done?: boolean;
 }
 
+export interface OpenRouterProvider {
+  name: string;
+  slug: string;
+  privacy_policy_url?: string;
+  terms_of_service_url?: string;
+  status_page_url?: string;
+}
+
 export interface OpenRouterModel {
   id: string;
+  canonical_slug: string;
+  hugging_face_id?: string;
   name: string;
-  top_provider: { id: string; is_moderated: boolean };
+  created: number;
+  description: string;
+  context_length: number;
+  architecture: {
+    modality: string;
+    input_modalities: string[];
+    output_modalities: string[];
+    tokenizer: string;
+    instruct_type?: string;
+  };
+  pricing: {
+    prompt: string;
+    completion: string;
+    request?: string;
+    image?: string;
+    web_search?: string;
+    internal_reasoning?: string;
+    input_cache_read?: string;
+    audio?: string;
+    input_cache_write?: string;
+  };
+  top_provider: {
+    context_length?: number;
+    max_completion_tokens?: number;
+    is_moderated: boolean;
+  };
+  per_request_limits: any;
+  supported_parameters: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -46,13 +84,77 @@ export class ChatService {
   private chatSessionsSubject = new BehaviorSubject<ChatSession[]>([]);
   private currentChatSubject = new BehaviorSubject<ChatSession | null>(null);
 
+  // Flag to prevent multiple initializations
+  private isInitialized = false;
+
   public newChatRequested$ = this.newChatSubject.asObservable();
   public chatSessions$ = this.chatSessionsSubject.asObservable();
   public currentChat$ = this.currentChatSubject.asObservable();
 
-  public constructor(private http: HttpClient) {
-    // Initialize with first chat
-    this.createNewChat();
+  public constructor(
+    private http: HttpClient,
+    private chatStorage: ChatSessionStorageService
+  ) {
+    // Wait a bit to ensure IndexedDB is ready, then initialize
+    setTimeout(() => {
+      this.initializeChats();
+    }, 100);
+  }
+
+  private async initializeChats(): Promise<void> {
+    if (this.isInitialized) return;
+
+    try {
+      // Get saved sessions
+      const savedSessions = await this.chatStorage.getAllSessions();
+      console.log('Loaded saved sessions:', savedSessions.length);
+
+      if (savedSessions.length > 0) {
+        // Load existing sessions
+        this.chatSessions = savedSessions;
+        this.chatSessionsSubject.next([...this.chatSessions]);
+
+        // Set current chat to most recent
+        this.currentChatId = savedSessions[0].id;
+        this.currentChatSubject.next(savedSessions[0]);
+        console.log('Loaded current chat:', savedSessions[0].title);
+      } else {
+        // Create first chat only if no sessions exist
+        console.log('No saved sessions found, creating first chat');
+        this.createFirstChat();
+      }
+
+      this.isInitialized = true;
+    } catch (error) {
+      console.error('Error initializing chats:', error);
+      if (!this.isInitialized) {
+        this.createFirstChat();
+        this.isInitialized = true;
+      }
+    }
+  }
+
+  private createFirstChat(): void {
+    const firstChat: ChatSession = {
+      id: this.generateChatId(),
+      title: 'New Chat',
+      messages: [{
+        role: 'assistant',
+        content: 'Welcome! Select a provider and ask a question.',
+        sender: 'ai',
+        text: 'Welcome! Select a provider and ask a question.'
+      }],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    this.chatSessions = [firstChat];
+    this.currentChatId = firstChat.id;
+    this.chatSessionsSubject.next([...this.chatSessions]);
+    this.currentChatSubject.next(firstChat);
+
+    // Save to IndexedDB
+    this.chatStorage.saveSession(firstChat);
   }
 
   public createNewChat(): ChatSession {
@@ -74,6 +176,9 @@ export class ChatService {
     this.currentChatId = newChat.id;
     this.chatSessionsSubject.next([...this.chatSessions]);
     this.currentChatSubject.next(newChat);
+
+    // Save to IndexedDB
+    this.chatStorage.saveSession(newChat);
 
     return newChat;
   }
@@ -115,6 +220,9 @@ export class ChatService {
 
       this.chatSessionsSubject.next([...this.chatSessions]);
       this.currentChatSubject.next(currentChat);
+
+      // AUTO-SAVE: Save to IndexedDB whenever a message is added
+      this.chatStorage.saveSession(currentChat);
     }
   }
 
@@ -128,7 +236,31 @@ export class ChatService {
       currentChat.updatedAt = new Date();
       this.chatSessionsSubject.next([...this.chatSessions]);
       this.currentChatSubject.next({ ...currentChat });
+
+      // AUTO-SAVE: Save to IndexedDB whenever a message is updated
+      this.chatStorage.saveSession(currentChat);
     }
+  }
+
+  /**
+   * Deletes a chat session by ID
+   */
+  public async deleteChat(chatId: string): Promise<void> {
+    // Remove from memory
+    this.chatSessions = this.chatSessions.filter(chat => chat.id !== chatId);
+    this.chatSessionsSubject.next([...this.chatSessions]);
+
+    // If we deleted the current chat, switch to another or create new one
+    if (this.currentChatId === chatId) {
+      if (this.chatSessions.length > 0) {
+        this.switchToChat(this.chatSessions[0].id);
+      } else {
+        this.createNewChat();
+      }
+    }
+
+    // Remove from IndexedDB
+    await this.chatStorage.deleteSession(chatId);
   }
 
   public requestNewChat(): void {
@@ -234,6 +366,10 @@ export class ChatService {
     return this.http.get<OpenRouterModel[]>(`${this.apiUrl}/openrouter/models`, {
       params: { apiKey },
     });
+  }
+
+  public getOpenRouterProviders(): Observable<OpenRouterProvider[]> {
+    return this.http.get<OpenRouterProvider[]>(`${this.apiUrl}/openrouter/providers`);
   }
 
   /**
