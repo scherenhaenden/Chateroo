@@ -5,12 +5,14 @@ import { ChatMessageComponent } from '../chat-message/chat-message.component';
 import { CanvasComponent } from '../canvas/canvas.component';
 import { LiveCodeComponent } from '../live-code/live-code.component';
 import { FileUploadComponent } from '../file-upload/file-upload.component';
+import { AutocompleteComponent, AutocompleteOption } from '../autocomplete/autocomplete.component';
 
 import {
   ChatService,
   SendMessagePayload,
   ChatApiResponse,
   OpenRouterModel,
+  OpenRouterProvider,
 } from '../../services/chat.service';
 import { SettingsService } from '../../services/settings.service';
 import { ChatMessage, ChatOptions, ChatAttachment, ChatSession } from '../../../models/chat.model';
@@ -19,7 +21,7 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ChatMessageComponent, CanvasComponent, LiveCodeComponent, FileUploadComponent],
+  imports: [CommonModule, ReactiveFormsModule, ChatMessageComponent, CanvasComponent, LiveCodeComponent, FileUploadComponent, AutocompleteComponent],
   templateUrl: './chat.component.html',
   host: { class: 'flex flex-col flex-1 min-h-0' },
 })
@@ -41,6 +43,15 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   public openRouterProviders: string[] = [];
   private openRouterModels: OpenRouterModel[] = [];
   public filteredOpenRouterModels: OpenRouterModel[] = [];
+
+  // Neue Eigenschaften für Provider-Dropdown
+  public allOpenRouterProviders: OpenRouterProvider[] = [];
+  public selectedOpenRouterProvider: OpenRouterProvider | null = null;
+
+  // Autocomplete options for the three OpenRouter dropdowns
+  public allOpenRouterProviderOptions: AutocompleteOption[] = [];
+  public openRouterProviderOptions: AutocompleteOption[] = [];
+  public filteredOpenRouterModelOptions: AutocompleteOption[] = [];
 
   // File upload properties
   public currentAttachments: ChatAttachment[] = [];
@@ -125,6 +136,8 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
         modelControl?.setValidators([Validators.required]);
         // Automatically load OpenRouter models when provider is selected
         void this.loadOpenRouterModelsAutomatically();
+        // Load OpenRouter providers
+        void this.loadOpenRouterProviders();
       } else {
         orProviderControl?.clearValidators();
         modelControl?.clearValidators();
@@ -394,6 +407,58 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
+   * Loads OpenRouter providers from the API.
+   */
+  private loadOpenRouterProviders(): void {
+    this.chatService.getOpenRouterProviders().subscribe({
+      next: (providers) => {
+        this.allOpenRouterProviders = providers.sort((a, b) => a.name.localeCompare(b.name));
+        this.allOpenRouterProviderOptions = this.allOpenRouterProviders.map(provider => ({
+          value: provider.slug,
+          label: provider.name
+        }));
+        if (providers.length > 0) {
+          this.selectedOpenRouterProvider = providers[0];
+        }
+      },
+      error: (error) => {
+        console.error('Error loading OpenRouter providers:', error);
+        this.allOpenRouterProviders = [];
+        this.allOpenRouterProviderOptions = [];
+        this.selectedOpenRouterProvider = null;
+      }
+    });
+  }
+
+  /**
+   * Handles OpenRouter provider selection from autocomplete
+   */
+  public onAllOpenRouterProviderSelect(option: AutocompleteOption | null): void {
+    if (option) {
+      const selectedProvider = this.allOpenRouterProviders.find(p => p.slug === option.value);
+      if (selectedProvider) {
+        this.selectedOpenRouterProvider = selectedProvider;
+      }
+    }
+  }
+
+  /**
+   * Handles OpenRouter provider selection from extracted providers autocomplete
+   */
+  public onOpenRouterProviderSelect(option: AutocompleteOption | null): void {
+    if (option) {
+      this.filterModelsForProvider(option.value);
+    }
+  }
+
+  /**
+   * Handles model selection from autocomplete
+   */
+  public onModelSelect(option: AutocompleteOption | null): void {
+    // Model selection is handled automatically by the form control
+  }
+
+  /**
    * Loads OpenRouter models from the API.
    */
   private loadOpenRouterModels(): void {
@@ -401,10 +466,14 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
       this.chatForm.get('apiKey')?.value || this.settingsService.getApiKey('openrouter');
     if (!apiKey) return;
     this.chatService.getOpenRouterModels(apiKey).subscribe((models) => {
-      this.openRouterModels = models;
+      this.openRouterModels = models.sort((a, b) => a.name.localeCompare(b.name));
       this.openRouterProviders = Array.from(
         new Set(models.map((m) => this.extractProviderFromId(m.id)))
-      );
+      ).sort();
+      this.openRouterProviderOptions = this.openRouterProviders.map(provider => ({
+        value: provider,
+        label: provider
+      }));
       const providerControl = this.chatForm.get('openRouterProvider');
       if (this.openRouterProviders.length > 0) {
         providerControl?.setValue(this.openRouterProviders[0]);
@@ -427,11 +496,15 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     // Load models with or without API key
     this.chatService.getOpenRouterModels(apiKey).subscribe({
       next: (models) => {
-        this.openRouterModels = models;
+        this.openRouterModels = models.sort((a, b) => a.name.localeCompare(b.name));
         // Extract unique providers from the models
         this.openRouterProviders = Array.from(
           new Set(models.map((m) => this.extractProviderFromId(m.id)))
-        );
+        ).sort();
+        this.openRouterProviderOptions = this.openRouterProviders.map(provider => ({
+          value: provider,
+          label: provider
+        }));
         const providerControl = this.chatForm.get('openRouterProvider');
         if (this.openRouterProviders.length > 0) {
           providerControl?.setValue(this.openRouterProviders[0]);
@@ -444,6 +517,8 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
         this.openRouterProviders = [];
         this.openRouterModels = [];
         this.filteredOpenRouterModels = [];
+        this.openRouterProviderOptions = [];
+        this.filteredOpenRouterModelOptions = [];
       }
     });
   }
@@ -462,7 +537,13 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   private filterModelsForProvider(provider: string): void {
     this.filteredOpenRouterModels = this.openRouterModels.filter(
       (m) => this.extractProviderFromId(m.id) === provider
-    );
+    ).sort((a, b) => a.name.localeCompare(b.name));
+
+    this.filteredOpenRouterModelOptions = this.filteredOpenRouterModels.map(model => ({
+      value: model.id,
+      label: model.name
+    }));
+
     const modelControl = this.chatForm.get('model');
     if (this.filteredOpenRouterModels.length > 0) {
       modelControl?.setValue(this.filteredOpenRouterModels[0].id);
