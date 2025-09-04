@@ -13,6 +13,10 @@ import {
 import { OpenRouterProvider } from '../interfaces/openrouter-provider.interface';
 import { OpenRouterModel } from '../interfaces/openrouter-model.interface';
 
+// Re-export interfaces for external use
+export type { OpenRouterModel } from '../interfaces/openrouter-model.interface';
+export type { OpenRouterProvider } from '../interfaces/openrouter-provider.interface';
+
 // Response shapes for typed HTTP calls
 interface OpenRouterModelsResponse {
   data: OpenRouterModel[];
