@@ -7,14 +7,14 @@ import { OpenRouterModel, OpenRouterProvider } from '../../models/openrouter.mod
   providedIn: 'root'
 })
 export class OpenRouterService {
-  private apiUrl = 'http://localhost:3000/api/chat';
+  private readonly apiUrl: string = 'http://localhost:3000/api/chat';
 
-  constructor(private http: HttpClient) {}
+  public constructor(private readonly http: HttpClient) {}
 
   /**
    * Gets available OpenRouter models
    */
-  getModels(apiKey: string): Observable<OpenRouterModel[]> {
+  public getModels(apiKey: string): Observable<OpenRouterModel[]> {
     return this.http.get<OpenRouterModel[]>(`${this.apiUrl}/openrouter/models`, {
       headers: apiKey ? { 'X-API-Key': apiKey } : {}
     });
@@ -23,21 +23,21 @@ export class OpenRouterService {
   /**
    * Gets available OpenRouter providers
    */
-  getProviders(): Observable<OpenRouterProvider[]> {
+  public getProviders(): Observable<OpenRouterProvider[]> {
     return this.http.get<OpenRouterProvider[]>(`${this.apiUrl}/openrouter/providers`);
   }
 
   /**
    * Extracts provider name from model ID (e.g., "openai/gpt-4" -> "openai")
    */
-  extractProviderFromModelId(modelId: string): string {
+  public extractProviderFromModelId(modelId: string): string {
     return modelId.split('/')[0] || 'unknown';
   }
 
   /**
    * Filters models by provider
    */
-  filterModelsByProvider(models: OpenRouterModel[], provider: string): OpenRouterModel[] {
+  public filterModelsByProvider(models: OpenRouterModel[], provider: string): OpenRouterModel[] {
     return models.filter(model =>
       this.extractProviderFromModelId(model.id) === provider
     ).sort((a, b) => a.name.localeCompare(b.name));
@@ -46,7 +46,7 @@ export class OpenRouterService {
   /**
    * Gets unique provider names from models
    */
-  getProvidersFromModels(models: OpenRouterModel[]): string[] {
+  public getProvidersFromModels(models: OpenRouterModel[]): string[] {
     return Array.from(
       new Set(models.map(model => this.extractProviderFromModelId(model.id)))
     ).sort();
