@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { AiApiEngine, ChatPayload, ChatResponse } from './ai-api-engine.base';
+import {
+  AiApiEngine,
+  ChatPayload,
+  ChatResponse,
+} from '../../../ai-api-engine.base';
 
 export interface OpenRouterProvider {
   name: string;

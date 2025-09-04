@@ -5,7 +5,7 @@ import {
   ChatResponse,
   StreamChunk,
 } from './ai-engine/ai-api-engine.base';
-import { OpenRouterEngine, OpenRouterModel } from './ai-engine/openrouter.engine';
+import { OpenRouterEngine, OpenRouterModel } from './ai-engine/domains/open-router/services/openrouter.engine';
 import type { SendMessageDto } from './dtos/chat.dto';
 
 @Injectable()
