@@ -1,59 +1,35 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import type { AxiosResponse, AxiosRequestHeaders } from 'axios';
+import { isAxiosError } from 'axios';
 import {
   AiApiEngine,
   ChatPayload,
   ChatResponse,
 } from '../../../ai-api-engine.base';
 
-export interface OpenRouterProvider {
-  name: string;
-  slug: string;
-  privacy_policy_url?: string;
-  terms_of_service_url?: string;
-  status_page_url?: string;
+// Import interfaces from separate files
+import { OpenRouterProvider } from '../interfaces/openrouter-provider.interface';
+import { OpenRouterModel } from '../interfaces/openrouter-model.interface';
+
+// Response shapes for typed HTTP calls
+interface OpenRouterModelsResponse {
+  data: OpenRouterModel[];
 }
 
-export interface OpenRouterModel {
-  id: string;
-  canonical_slug: string;
-  hugging_face_id?: string;
-  name: string;
-  created: number;
-  description: string;
-  context_length: number;
-  architecture: Architecture;
-  pricing: Pricing;
-  top_provider: TopProvider;
-  per_request_limits: any;
-  supported_parameters: string[];
+interface OpenRouterProvidersResponse {
+  data: OpenRouterProvider[];
 }
 
-export interface Architecture {
-  modality: string;
-  input_modalities: string[];
-  output_modalities: string[];
-  tokenizer: string;
-  instruct_type?: string;
+interface OpenRouterChatChoice {
+  message?: {
+    content?: string;
+  };
 }
 
-export interface Pricing {
-  prompt: string;
-  completion: string;
-  request?: string;
-  image?: string;
-  web_search?: string;
-  internal_reasoning?: string;
-  input_cache_read?: string;
-  audio?: string;
-  input_cache_write?: string;
-}
-
-export interface TopProvider {
-  context_length?: number;
-  max_completion_tokens?: number;
-  is_moderated: boolean;
+interface OpenRouterChatResponse {
+  choices: OpenRouterChatChoice[];
 }
 
 @Injectable()
@@ -69,25 +45,35 @@ export class OpenRouterEngine extends AiApiEngine {
   }
 
   public async listModels(apiKey: string): Promise<OpenRouterModel[]> {
-    const headers: any = {
+    const headers: AxiosRequestHeaders = {
       'Content-Type': 'application/json',
     };
 
     // Only add Authorization header if apiKey is provided
     if (apiKey && apiKey.trim() !== '') {
-      headers.Authorization = `Bearer ${apiKey}`;
+      headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(this.modelsUrl, { headers }),
+      const response: AxiosResponse<OpenRouterModelsResponse> = await firstValueFrom(
+        this.httpService.get<OpenRouterModelsResponse>(this.modelsUrl, {
+          headers,
+        }),
       );
+
       return response.data?.data ?? [];
-    } catch (error) {
-      console.error(
-        'Fehler beim Abrufen der Modelle von OpenRouter:',
-        (error as any).response?.data || (error as any).message,
-      );
+    } catch (err: unknown) {
+      if (isAxiosError(err)) {
+        console.error(
+          'Fehler beim Abrufen der Modelle von OpenRouter:',
+          err.response?.data ?? err.message,
+        );
+      } else {
+        console.error(
+          'Fehler beim Abrufen der Modelle von OpenRouter:',
+          String(err),
+        );
+      }
       return [];
     }
   }
@@ -96,20 +82,30 @@ export class OpenRouterEngine extends AiApiEngine {
    * Gets available OpenRouter providers
    */
   public async listProviders(): Promise<OpenRouterProvider[]> {
-    const headers = {
+    const headers: AxiosRequestHeaders = {
       'Content-Type': 'application/json',
     };
 
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(this.providersUrl, { headers }),
+      const response: AxiosResponse<OpenRouterProvidersResponse> = await firstValueFrom(
+        this.httpService.get<OpenRouterProvidersResponse>(this.providersUrl, {
+          headers,
+        }),
       );
+
       return response.data?.data ?? [];
-    } catch (error) {
-      console.error(
-        'Fehler beim Abrufen der Provider von OpenRouter:',
-        (error as any).response?.data || (error as any).message,
-      );
+    } catch (err: unknown) {
+      if (isAxiosError(err)) {
+        console.error(
+          'Fehler beim Abrufen der Provider von OpenRouter:',
+          err.response?.data ?? err.message,
+        );
+      } else {
+        console.error(
+          'Fehler beim Abrufen der Provider von OpenRouter:',
+          String(err),
+        );
+      }
       return [];
     }
   }
@@ -118,7 +114,7 @@ export class OpenRouterEngine extends AiApiEngine {
    * Sends a message to the OpenRouter API and returns the response.
    */
   public async sendMessage(payload: ChatPayload): Promise<ChatResponse> {
-    const headers = {
+    const headers: AxiosRequestHeaders = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${payload.apiKey}`,
       'HTTP-Referer': 'https://chateroo.app', // Optional: your app's URL
@@ -144,49 +140,61 @@ export class OpenRouterEngine extends AiApiEngine {
     };
 
     try {
-      const response = await firstValueFrom(
-        this.httpService.post(this.apiUrl, body, { headers }),
+      const response: AxiosResponse<OpenRouterChatResponse> = await firstValueFrom(
+        this.httpService.post<OpenRouterChatResponse>(this.apiUrl, body, {
+          headers,
+        }),
       );
 
-      const content = response.data.choices[0]?.message?.content;
+      const content = response.data?.choices?.[0]?.message?.content;
       if (!content) {
         throw new Error('Keine gültige Antwort von OpenRouter erhalten.');
       }
 
       return { content };
-    } catch (error) {
-      const errorData = (error as any).response?.data;
-      const errorMessage = (error as any).message;
+    } catch (err: unknown) {
+      if (isAxiosError(err)) {
+        const errorData = err.response?.data as Record<string, any> | undefined;
+        const message = err.message;
 
-      console.error('Fehler bei der Kommunikation mit OpenRouter:', errorData || errorMessage);
+        console.error(
+          'Fehler bei der Kommunikation mit OpenRouter:',
+          errorData ?? message,
+        );
 
-      // Handle specific OpenRouter errors
-      if (errorData?.error) {
-        const { message, code } = errorData.error;
+        if (errorData?.error) {
+          const { message: errMsg, code } = errorData.error as {
+            message?: string;
+            code?: number;
+          };
 
-        if (code === 404 && message.includes('data policy')) {
+          if (code === 404 && errMsg?.includes('data policy')) {
+            return {
+              content: `Error: The selected model "${payload.model || this.defaultModel}" is not available according to your OpenRouter data policy settings. Please:\n\n1. Visit https://openrouter.ai/settings/privacy to configure your data policy\n2. Or select a different model that's available with your current settings\n3. Try using models like "openai/gpt-3.5-turbo" or "openai/gpt-4o-mini" which are commonly available`,
+            };
+          }
+
+          if (code === 401) {
+            return {
+              content: 'Error: Invalid API key. Please check your OpenRouter API key.',
+            };
+          }
+
+          if (code === 429) {
+            return {
+              content: 'Error: Rate limit exceeded. Please wait a moment and try again.',
+            };
+          }
+
           return {
-            content: `Error: The selected model "${
-              payload.model || this.defaultModel
-            }" is not available according to your OpenRouter data policy settings. Please:\n\n1. Visit https://openrouter.ai/settings/privacy to configure your data policy\n2. Or select a different model that's available with your current settings\n3. Try using models like "openai/gpt-3.5-turbo" or "openai/gpt-4o-mini" which are commonly available`,
+            content: `Error: ${errMsg ?? 'Unknown error'} (Code: ${code ?? 'N/A'})`,
           };
         }
-
-        if (code === 401) {
-          return {
-            content: 'Error: Invalid API key. Please check your OpenRouter API key.',
-          };
-        }
-
-        if (code === 429) {
-          return {
-            content: 'Error: Rate limit exceeded. Please wait a moment and try again.',
-          };
-        }
-
-        return {
-          content: `Error: ${message} (Code: ${code})`,
-        };
+      } else {
+        console.error(
+          'Fehler bei der Kommunikation mit OpenRouter:',
+          String(err),
+        );
       }
 
       return {
