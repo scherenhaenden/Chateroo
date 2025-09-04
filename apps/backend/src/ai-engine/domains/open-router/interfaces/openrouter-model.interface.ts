@@ -16,4 +16,3 @@ export interface OpenRouterModel {
   per_request_limits: any;
   supported_parameters: string[];
 }
-

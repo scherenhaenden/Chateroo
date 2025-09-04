@@ -158,7 +158,7 @@ export class OpenRouterEngine extends AiApiEngine {
 
       const content = response.data?.choices?.[0]?.message?.content;
       if (!content) {
-        throw new Error('Keine gültige Antwort von OpenRouter erhalten.');
+        return { content: 'Keine gültige Antwort von OpenRouter erhalten.' };
       }
 
       return { content };
