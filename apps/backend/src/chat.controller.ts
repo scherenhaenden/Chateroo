@@ -238,4 +238,119 @@ export class ChatController {
       throw error;
     }
   }
+
+  /**
+   * Get list of all available AI providers in the system.
+   * This includes all configured AI engines like lm-studio, openai, openrouter, etc.
+   */
+  @Get('providers')
+  @ApiTags('providers')
+  @ApiOperation({
+    summary: 'Get all AI providers',
+    description:
+      'Retrieves the list of all available AI providers configured in the system (lm-studio, openai, openrouter, mistral, etc.)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of AI providers retrieved successfully',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'openai' },
+          name: { type: 'string', example: 'OpenAI' },
+          description: { type: 'string', example: 'OpenAI GPT models' },
+          requiresApiKey: { type: 'boolean', example: true },
+          supportsModels: { type: 'boolean', example: true },
+        },
+      },
+    },
+  })
+  public async getAiProviders() {
+    try {
+      return await this.chatService.getAvailableProviders();
+    } catch (error) {
+      console.error('Error fetching AI providers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get models for specific AI provider(s).
+   * This endpoint allows fetching models for one or multiple providers.
+   */
+  @Get('models')
+  @ApiTags('providers')
+  @ApiOperation({
+    summary: 'Get models for AI provider(s)',
+    description:
+      'Retrieves models for the specified AI provider(s). Can fetch models for a single provider or multiple providers grouped by provider.',
+  })
+  @ApiQuery({
+    name: 'providers',
+    description:
+      'Comma-separated list of provider IDs (e.g., "openai,openrouter")',
+    required: true,
+    example: 'openai,openrouter',
+  })
+  @ApiQuery({
+    name: 'apiKey',
+    description:
+      'API key for providers that require authentication (optional)',
+    required: false,
+    example: 'sk-...',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Models grouped by provider retrieved successfully',
+    schema: {
+      type: 'object',
+      additionalProperties: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'gpt-4' },
+            name: { type: 'string', example: 'GPT-4' },
+            description: { type: 'string', example: 'Most capable GPT-4 model' },
+            context_length: { type: 'number', example: 8192 },
+            provider: { type: 'string', example: 'openai' },
+          },
+        },
+      },
+      example: {
+        openai: [
+          {
+            id: 'gpt-4',
+            name: 'GPT-4',
+            description: 'Most capable GPT-4 model',
+            context_length: 8192,
+            provider: 'openai',
+          },
+        ],
+        openrouter: [
+          {
+            id: 'openai/gpt-4',
+            name: 'GPT-4 (via OpenRouter)',
+            description: 'GPT-4 through OpenRouter',
+            context_length: 8192,
+            provider: 'openrouter',
+          },
+        ],
+      },
+    },
+  })
+  public async getModelsForProviders(
+    @Query('providers') providers: string,
+    @Query('apiKey') apiKey?: string,
+  ) {
+    try {
+      const providerList = providers.split(',').map(p => p.trim());
+      return await this.chatService.getModelsForProviders(providerList, apiKey);
+    } catch (error) {
+      console.error('Error fetching models for providers:', error);
+      throw error;
+    }
+  }
 }
