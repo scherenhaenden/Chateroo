@@ -238,4 +238,22 @@ export class ChatController {
       throw error;
     }
   }
+
+  @Get('openrouter/models-by-provider')
+  @ApiTags('providers')
+  @ApiOperation({
+    summary: 'Get OpenRouter models grouped by provider',
+    description:
+      'Retrieves OpenRouter models grouped by their provider slug. Requires an API key for full model list.',
+  })
+  async getOpenRouterModelsByProvider(
+    @Headers('api-key') apiKey = '',
+  ) {
+    try {
+      return await this.chatService.getOpenRouterModelsByProvider(apiKey);
+    } catch (error) {
+      console.error('Error fetching OpenRouter models by provider:', error);
+      throw error;
+    }
+  }
 }

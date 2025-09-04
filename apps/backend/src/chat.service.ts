@@ -110,4 +110,18 @@ export class ChatService {
 
     return await engine.listProviders();
   }
+
+  /**
+   * Gets OpenRouter models grouped by provider
+   */
+  async getOpenRouterModelsByProvider(
+    apiKey?: string,
+  ): Promise<Record<string, OpenRouterModel[]>> {
+    const engine = this.engineRegistry.get('openrouter') as OpenRouterEngine;
+    if (!engine) {
+      throw new Error('OpenRouter engine not available');
+    }
+
+    return await engine.listModelsByProvider(apiKey ?? '');
+  }
 }

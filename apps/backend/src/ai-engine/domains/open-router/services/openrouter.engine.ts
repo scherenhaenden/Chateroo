@@ -117,6 +117,28 @@ export class OpenRouterEngine extends AiApiEngine {
   }
 
   /**
+   * Retrieves all models and groups them by their top-level provider slug.
+   * @param apiKey Optional OpenRouter API key
+   */
+  public async listModelsByProvider(
+    apiKey: string,
+  ): Promise<Record<string, OpenRouterModel[]>> {
+    const allModels = await this.listModels(apiKey);
+    const modelsByProvider: Record<string, OpenRouterModel[]> = {};
+
+    for (const model of allModels) {
+      const slug = model.top_provider?.slug;
+      if (!slug) continue;
+      if (!modelsByProvider[slug]) {
+        modelsByProvider[slug] = [];
+      }
+      modelsByProvider[slug].push(model);
+    }
+
+    return modelsByProvider;
+  }
+
+  /**
    * Sends a message to the OpenRouter API and returns the response.
    */
   public async sendMessage(payload: ChatPayload): Promise<ChatResponse> {

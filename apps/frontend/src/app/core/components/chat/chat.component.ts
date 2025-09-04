@@ -41,7 +41,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   public showLiveCodeModal = false;
 
   public openRouterProviders: string[] = [];
-  private openRouterModels: OpenRouterModel[] = [];
+  private modelsByProvider: Record<string, OpenRouterModel[]> = {};
   public filteredOpenRouterModels: OpenRouterModel[] = [];
 
   // Neue Eigenschaften für Provider-Dropdown
@@ -143,7 +143,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
         modelControl?.clearValidators();
         // Clear OpenRouter data when switching away
         this.openRouterProviders = [];
-        this.openRouterModels = [];
+        this.modelsByProvider = {};
         this.filteredOpenRouterModels = [];
       }
       orProviderControl?.updateValueAndValidity();
@@ -465,11 +465,9 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     const apiKey =
       this.chatForm.get('apiKey')?.value || this.settingsService.getApiKey('openrouter');
     if (!apiKey) return;
-    this.chatService.getOpenRouterModels(apiKey).subscribe((models) => {
-      this.openRouterModels = models.sort((a, b) => a.name.localeCompare(b.name));
-      this.openRouterProviders = Array.from(
-        new Set(models.map((m) => this.extractProviderFromId(m.id)))
-      ).sort();
+    this.chatService.getOpenRouterModelsByProvider(apiKey).subscribe((models) => {
+      this.modelsByProvider = models;
+      this.openRouterProviders = Object.keys(models).sort();
       this.openRouterProviderOptions = this.openRouterProviders.map(provider => ({
         value: provider,
         label: provider
@@ -494,13 +492,10 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     const apiKey = this.chatForm.get('apiKey')?.value || this.settingsService.getApiKey('openrouter') || '';
 
     // Load models with or without API key
-    this.chatService.getOpenRouterModels(apiKey).subscribe({
+    this.chatService.getOpenRouterModelsByProvider(apiKey).subscribe({
       next: (models) => {
-        this.openRouterModels = models.sort((a, b) => a.name.localeCompare(b.name));
-        // Extract unique providers from the models
-        this.openRouterProviders = Array.from(
-          new Set(models.map((m) => this.extractProviderFromId(m.id)))
-        ).sort();
+        this.modelsByProvider = models;
+        this.openRouterProviders = Object.keys(models).sort();
         this.openRouterProviderOptions = this.openRouterProviders.map(provider => ({
           value: provider,
           label: provider
@@ -515,7 +510,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
         console.error('Error loading OpenRouter models:', error);
         // Reset the dropdowns on error
         this.openRouterProviders = [];
-        this.openRouterModels = [];
+        this.modelsByProvider = {};
         this.filteredOpenRouterModels = [];
         this.openRouterProviderOptions = [];
         this.filteredOpenRouterModelOptions = [];
@@ -524,19 +519,12 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
-   * Extracts provider name from model ID (e.g., "openai/gpt-4" -> "openai")
-   */
-  private extractProviderFromId(modelId: string): string {
-    return modelId.split('/')[0] || 'unknown';
-  }
-
-  /**
    * Filters OpenRouter models for the selected provider.
    * @param provider The provider name
    */
   private filterModelsForProvider(provider: string): void {
-    this.filteredOpenRouterModels = this.openRouterModels.filter(
-      (m) => this.extractProviderFromId(m.id) === provider
+    this.filteredOpenRouterModels = (
+      this.modelsByProvider[provider] || []
     ).sort((a, b) => a.name.localeCompare(b.name));
 
     this.filteredOpenRouterModelOptions = this.filteredOpenRouterModels.map(model => ({

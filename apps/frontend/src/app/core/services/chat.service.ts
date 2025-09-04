@@ -65,6 +65,8 @@ export interface OpenRouterModel {
     input_cache_write?: string;
   };
   top_provider: {
+    slug: string;
+    name?: string;
     context_length?: number;
     max_completion_tokens?: number;
     is_moderated: boolean;
@@ -370,6 +372,19 @@ export class ChatService {
 
   public getOpenRouterProviders(): Observable<OpenRouterProvider[]> {
     return this.http.get<OpenRouterProvider[]>(`${this.apiUrl}/openrouter/providers`);
+  }
+
+  public getOpenRouterModelsByProvider(
+    apiKey: string,
+  ): Observable<Record<string, OpenRouterModel[]>> {
+    const headers: Record<string, string> = {};
+    if (apiKey) {
+      headers['api-key'] = apiKey;
+    }
+    return this.http.get<Record<string, OpenRouterModel[]>>(
+      `${this.apiUrl}/openrouter/models-by-provider`,
+      { headers },
+    );
   }
 
   /**
