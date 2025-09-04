@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import type { AxiosResponse, AxiosRequestHeaders } from 'axios';
+import type { AxiosResponse } from 'axios';
 import { isAxiosError } from 'axios';
 import {
   AiApiEngine,
@@ -45,7 +45,7 @@ export class OpenRouterEngine extends AiApiEngine {
   }
 
   public async listModels(apiKey: string): Promise<OpenRouterModel[]> {
-    const headers: AxiosRequestHeaders = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
@@ -55,11 +55,14 @@ export class OpenRouterEngine extends AiApiEngine {
     }
 
     try {
-      const response: AxiosResponse<OpenRouterModelsResponse> = await firstValueFrom(
-        this.httpService.get<OpenRouterModelsResponse>(this.modelsUrl, {
+      const obs = this.httpService.get<OpenRouterModelsResponse>(
+        this.modelsUrl,
+        {
           headers,
-        }),
+        },
       );
+      const response: AxiosResponse<OpenRouterModelsResponse> =
+        await firstValueFrom(obs);
 
       return response.data?.data ?? [];
     } catch (err: unknown) {
@@ -82,16 +85,19 @@ export class OpenRouterEngine extends AiApiEngine {
    * Gets available OpenRouter providers
    */
   public async listProviders(): Promise<OpenRouterProvider[]> {
-    const headers: AxiosRequestHeaders = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
     try {
-      const response: AxiosResponse<OpenRouterProvidersResponse> = await firstValueFrom(
-        this.httpService.get<OpenRouterProvidersResponse>(this.providersUrl, {
+      const obs = this.httpService.get<OpenRouterProvidersResponse>(
+        this.providersUrl,
+        {
           headers,
-        }),
+        },
       );
+      const response: AxiosResponse<OpenRouterProvidersResponse> =
+        await firstValueFrom(obs);
 
       return response.data?.data ?? [];
     } catch (err: unknown) {
@@ -114,7 +120,7 @@ export class OpenRouterEngine extends AiApiEngine {
    * Sends a message to the OpenRouter API and returns the response.
    */
   public async sendMessage(payload: ChatPayload): Promise<ChatResponse> {
-    const headers: AxiosRequestHeaders = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${payload.apiKey}`,
       'HTTP-Referer': 'https://chateroo.app', // Optional: your app's URL
@@ -140,11 +146,15 @@ export class OpenRouterEngine extends AiApiEngine {
     };
 
     try {
-      const response: AxiosResponse<OpenRouterChatResponse> = await firstValueFrom(
-        this.httpService.post<OpenRouterChatResponse>(this.apiUrl, body, {
+      const obs = this.httpService.post<OpenRouterChatResponse>(
+        this.apiUrl,
+        body,
+        {
           headers,
-        }),
+        },
       );
+      const response: AxiosResponse<OpenRouterChatResponse> =
+        await firstValueFrom(obs);
 
       const content = response.data?.choices?.[0]?.message?.content;
       if (!content) {
@@ -176,13 +186,15 @@ export class OpenRouterEngine extends AiApiEngine {
 
           if (code === 401) {
             return {
-              content: 'Error: Invalid API key. Please check your OpenRouter API key.',
+              content:
+                'Error: Invalid API key. Please check your OpenRouter API key.',
             };
           }
 
           if (code === 429) {
             return {
-              content: 'Error: Rate limit exceeded. Please wait a moment and try again.',
+              content:
+                'Error: Rate limit exceeded. Please wait a moment and try again.',
             };
           }
 
@@ -198,7 +210,8 @@ export class OpenRouterEngine extends AiApiEngine {
       }
 
       return {
-        content: 'Sorry, there was an error communicating with OpenRouter. Please try again.',
+        content:
+          'Sorry, there was an error communicating with OpenRouter. Please try again.',
       };
     }
   }
