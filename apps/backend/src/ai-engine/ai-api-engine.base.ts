@@ -6,6 +6,7 @@ import { ChatAttachment } from './models/chat-attachment.model';
 export type { ChatPayload } from './models/chat-payload.model';
 export type { ChatResponse } from './models/chat-response.model';
 export type { StreamChunk } from './models/stream-chunk.model';
+export type { ChatAttachment } from './models/chat-attachment.model';
 
 
 export abstract class AiApiEngine {
