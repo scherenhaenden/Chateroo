@@ -26,11 +26,6 @@
       "csp": "default-src 'self'; img-src 'self' asset: https: data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http: ws: wss:;"
     }
   },
-  "plugins": {
-    "store": {
-      "default": true
-    }
-  },
   "bundle": {
     "active": true,
     "targets": "all",
@@ -46,4 +41,3 @@
     ]
   }
 }
-
