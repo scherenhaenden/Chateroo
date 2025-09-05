@@ -5,14 +5,12 @@ import { ChatMessageComponent } from '../chat-message/chat-message.component';
 import { CanvasComponent } from '../canvas/canvas.component';
 import { LiveCodeComponent } from '../live-code/live-code.component';
 import { FileUploadComponent } from '../file-upload/file-upload.component';
-import { AutocompleteComponent, AutocompleteOption } from '../autocomplete/autocomplete.component';
+import { OpenRouterSelectorComponent, OpenRouterSelection } from '../openrouter-selector/openrouter-selector.component';
 
 import {
   ChatService,
   SendMessagePayload,
   ChatApiResponse,
-  OpenRouterModel,
-  OpenRouterProvider,
 } from '../../services/chat.service';
 import { SettingsService } from '../../services/settings.service';
 import { ChatMessage, ChatOptions, ChatAttachment, ChatSession } from '../../../models/chat.model';
@@ -21,7 +19,7 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ChatMessageComponent, CanvasComponent, LiveCodeComponent, FileUploadComponent, AutocompleteComponent],
+  imports: [CommonModule, ReactiveFormsModule, ChatMessageComponent, CanvasComponent, LiveCodeComponent, FileUploadComponent, OpenRouterSelectorComponent],
   templateUrl: './chat.component.html',
   host: { class: 'flex flex-col flex-1 min-h-0' },
 })
@@ -32,7 +30,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   public currentChat: ChatSession | null = null;
   private subscriptions: Subscription[] = [];
 
-  // Nuevas propiedades para Canvas y Live Code
+  // Canvas and Live Code options
   public chatOptions: ChatOptions = {
     canvasEnabled: false,
     liveCodeEnabled: false
@@ -40,24 +38,15 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   public showCanvasModal = false;
   public showLiveCodeModal = false;
 
-  public openRouterProviders: string[] = [];
-  private openRouterModels: OpenRouterModel[] = [];
-  public filteredOpenRouterModels: OpenRouterModel[] = [];
-
-  // Neue Eigenschaften für Provider-Dropdown
-  public allOpenRouterProviders: OpenRouterProvider[] = [];
-  public selectedOpenRouterProvider: OpenRouterProvider | null = null;
-
-  // Autocomplete options for the three OpenRouter dropdowns
-  public allOpenRouterProviderOptions: AutocompleteOption[] = [];
-  public openRouterProviderOptions: AutocompleteOption[] = [];
-  public filteredOpenRouterModelOptions: AutocompleteOption[] = [];
+  // OpenRouter selection state - managed by OpenRouter component
+  public openRouterSelection: OpenRouterSelection = { provider: '', model: '' };
 
   // File upload properties
   public currentAttachments: ChatAttachment[] = [];
   public uploadError: string = '';
 
   @ViewChild('chatContainer') private chatContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild(OpenRouterSelectorComponent) private openRouterSelector!: OpenRouterSelectorComponent;
 
   private readonly providersWithApiKey = [
     'openai',
@@ -121,8 +110,6 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     this.chatForm.get('provider')?.valueChanges.subscribe((provider) => {
       const apiKeyControl = this.chatForm.get('apiKey');
-      const orProviderControl = this.chatForm.get('openRouterProvider');
-      const modelControl = this.chatForm.get('model');
 
       if (this.providersWithApiKey.includes(provider)) {
         apiKeyControl?.setValidators([Validators.required]);
@@ -131,32 +118,15 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
       }
       apiKeyControl?.updateValueAndValidity();
 
-      if (provider === 'openrouter') {
-        orProviderControl?.setValidators([Validators.required]);
-        modelControl?.setValidators([Validators.required]);
-        // Automatically load OpenRouter models when provider is selected
-        void this.loadOpenRouterModelsAutomatically();
-        // Load OpenRouter providers
-        void this.loadOpenRouterProviders();
-      } else {
-        orProviderControl?.clearValidators();
-        modelControl?.clearValidators();
-        // Clear OpenRouter data when switching away
-        this.openRouterProviders = [];
-        this.openRouterModels = [];
-        this.filteredOpenRouterModels = [];
+      // Refresh OpenRouter models when switching to OpenRouter and API key changes
+      if (provider === 'openrouter' && this.openRouterSelector) {
+        this.openRouterSelector.refreshModels();
       }
-      orProviderControl?.updateValueAndValidity();
-      modelControl?.updateValueAndValidity();
-    });
-
-    this.chatForm.get('openRouterProvider')?.valueChanges.subscribe((prov) => {
-      this.filterModelsForProvider(prov);
     });
 
     this.chatForm.get('apiKey')?.valueChanges.subscribe(() => {
-      if (this.chatForm.get('provider')?.value === 'openrouter') {
-        this.loadOpenRouterModels();
+      if (this.chatForm.get('provider')?.value === 'openrouter' && this.openRouterSelector) {
+        this.openRouterSelector.refreshModels();
       }
     });
   }
@@ -407,149 +377,15 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
-   * Loads OpenRouter providers from the API.
+   * Handles OpenRouter selection changes from the OpenRouter component
    */
-  private loadOpenRouterProviders(): void {
-    this.chatService.getOpenRouterProviders().subscribe({
-      next: (providers) => {
-        this.allOpenRouterProviders = providers.sort((a, b) => a.name.localeCompare(b.name));
-        this.allOpenRouterProviderOptions = this.allOpenRouterProviders.map(provider => ({
-          value: provider.slug,
-          label: provider.name
-        }));
-        if (providers.length > 0) {
-          this.selectedOpenRouterProvider = providers[0];
-        }
-      },
-      error: (error) => {
-        console.error('Error loading OpenRouter providers:', error);
-        this.allOpenRouterProviders = [];
-        this.allOpenRouterProviderOptions = [];
-        this.selectedOpenRouterProvider = null;
-      }
+  public onOpenRouterSelectionChange(selection: OpenRouterSelection): void {
+    this.openRouterSelection = selection;
+    // Update form controls with the selection
+    this.chatForm.patchValue({
+      openRouterProvider: selection.provider,
+      model: selection.model
     });
-  }
-
-  /**
-   * Handles OpenRouter provider selection from autocomplete
-   */
-  public onAllOpenRouterProviderSelect(option: AutocompleteOption | null): void {
-    if (option) {
-      const selectedProvider = this.allOpenRouterProviders.find(p => p.slug === option.value);
-      if (selectedProvider) {
-        this.selectedOpenRouterProvider = selectedProvider;
-      }
-    }
-  }
-
-  /**
-   * Handles OpenRouter provider selection from extracted providers autocomplete
-   */
-  public onOpenRouterProviderSelect(option: AutocompleteOption | null): void {
-    if (option) {
-      this.filterModelsForProvider(option.value);
-    }
-  }
-
-  /**
-   * Handles model selection from autocomplete
-   */
-  public onModelSelect(option: AutocompleteOption | null): void {
-    // Model selection is handled automatically by the form control
-  }
-
-  /**
-   * Loads OpenRouter models from the API.
-   */
-  private loadOpenRouterModels(): void {
-    const apiKey =
-      this.chatForm.get('apiKey')?.value || this.settingsService.getApiKey('openrouter');
-    if (!apiKey) return;
-    this.chatService.getOpenRouterModels(apiKey).subscribe((models) => {
-      this.openRouterModels = models.sort((a, b) => a.name.localeCompare(b.name));
-      this.openRouterProviders = Array.from(
-        new Set(models.map((m) => this.extractProviderFromId(m.id)))
-      ).sort();
-      this.openRouterProviderOptions = this.openRouterProviders.map(provider => ({
-        value: provider,
-        label: provider
-      }));
-      const providerControl = this.chatForm.get('openRouterProvider');
-      if (this.openRouterProviders.length > 0) {
-        providerControl?.setValue(this.openRouterProviders[0]);
-        this.filterModelsForProvider(this.openRouterProviders[0]);
-      }
-    });
-  }
-
-  /**
-   * Automatically loads OpenRouter models when the provider is selected.
-   * This works with or without an API key.
-   */
-  private loadOpenRouterModelsAutomatically(): void {
-    const provider = this.chatForm.get('provider')?.value;
-    if (!provider || provider !== 'openrouter') return;
-
-    // Try to get API key from form or settings, but proceed even without one
-    const apiKey = this.chatForm.get('apiKey')?.value || this.settingsService.getApiKey('openrouter') || '';
-
-    // Load models with or without API key
-    this.chatService.getOpenRouterModels(apiKey).subscribe({
-      next: (models) => {
-        this.openRouterModels = models.sort((a, b) => a.name.localeCompare(b.name));
-        // Extract unique providers from the models
-        this.openRouterProviders = Array.from(
-          new Set(models.map((m) => this.extractProviderFromId(m.id)))
-        ).sort();
-        this.openRouterProviderOptions = this.openRouterProviders.map(provider => ({
-          value: provider,
-          label: provider
-        }));
-        const providerControl = this.chatForm.get('openRouterProvider');
-        if (this.openRouterProviders.length > 0) {
-          providerControl?.setValue(this.openRouterProviders[0]);
-          this.filterModelsForProvider(this.openRouterProviders[0]);
-        }
-      },
-      error: (error) => {
-        console.error('Error loading OpenRouter models:', error);
-        // Reset the dropdowns on error
-        this.openRouterProviders = [];
-        this.openRouterModels = [];
-        this.filteredOpenRouterModels = [];
-        this.openRouterProviderOptions = [];
-        this.filteredOpenRouterModelOptions = [];
-      }
-    });
-  }
-
-  /**
-   * Extracts provider name from model ID (e.g., "openai/gpt-4" -> "openai")
-   */
-  private extractProviderFromId(modelId: string): string {
-    return modelId.split('/')[0] || 'unknown';
-  }
-
-  /**
-   * Filters OpenRouter models for the selected provider.
-   * @param provider The provider name
-   */
-  private filterModelsForProvider(provider: string): void {
-    this.filteredOpenRouterModels = this.openRouterModels.filter(
-      (m) => this.extractProviderFromId(m.id) === provider
-    ).sort((a, b) => a.name.localeCompare(b.name));
-
-    this.filteredOpenRouterModelOptions = this.filteredOpenRouterModels.map(model => ({
-      value: model.id,
-      label: model.name
-    }));
-
-    const modelControl = this.chatForm.get('model');
-    if (this.filteredOpenRouterModels.length > 0) {
-      modelControl?.setValue(this.filteredOpenRouterModels[0].id);
-    } else {
-      modelControl?.setValue('');
-    }
   }
 
   /**

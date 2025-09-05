@@ -1,5 +1,20 @@
-import { Controller, Post, Body, Res, Headers, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery, ApiHeader } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  Res,
+  Headers,
+  Get,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiQuery,
+  ApiHeader,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { ChatService } from './chat.service';
 import { SendMessageDto } from './dtos/chat.dto';
@@ -23,7 +38,8 @@ export class ChatController {
   @Post()
   @ApiOperation({
     summary: 'Send a message to AI provider',
-    description: 'Sends a message to the specified AI provider. Supports both streaming and non-streaming responses. For streaming, set stream=true in the request body or include "text/event-stream" in the Accept header.',
+    description:
+      'Sends a message to the specified AI provider. Supports both streaming and non-streaming responses. For streaming, set stream=true in the request body or include "text/event-stream" in the Accept header.',
   })
   @ApiBody({
     type: SendMessageDto,
@@ -41,7 +57,10 @@ export class ChatController {
           provider: 'lm-studio',
           messages: [
             { role: 'user', content: 'What is TypeScript?' },
-            { role: 'assistant', content: 'TypeScript is a typed superset of JavaScript...' },
+            {
+              role: 'assistant',
+              content: 'TypeScript is a typed superset of JavaScript...',
+            },
             { role: 'user', content: 'Can you give me an example?' },
           ],
           stream: true,
@@ -82,7 +101,8 @@ export class ChatController {
       'text/event-stream': {
         schema: {
           type: 'string',
-          example: 'data: {"content":"Hello"}\n\ndata: {"content":" there!"}\n\ndata: [DONE]\n\n',
+          example:
+            'data: {"content":"Hello"}\n\ndata: {"content":" there!"}\n\ndata: [DONE]\n\n',
         },
       },
     },
@@ -154,11 +174,13 @@ export class ChatController {
   @ApiTags('providers')
   @ApiOperation({
     summary: 'Get OpenRouter models',
-    description: 'Retrieves the list of available models from OpenRouter. Requires an API key for full model list.',
+    description:
+      'Retrieves the list of available models from OpenRouter. Requires an API key for full model list.',
   })
   @ApiQuery({
     name: 'apiKey',
-    description: 'OpenRouter API key (optional - returns limited list without key)',
+    description:
+      'OpenRouter API key (optional - returns limited list without key)',
     required: false,
     example: 'sk-or-...',
   })
@@ -191,7 +213,8 @@ export class ChatController {
   @ApiTags('providers')
   @ApiOperation({
     summary: 'Get OpenRouter providers',
-    description: 'Retrieves the list of available AI providers from OpenRouter.',
+    description:
+      'Retrieves the list of available AI providers from OpenRouter.',
   })
   @ApiResponse({
     status: 200,

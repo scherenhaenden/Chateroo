@@ -18,15 +18,16 @@ export interface AutocompleteOption {
         #inputElement
         [formControl]="inputControl"
         [placeholder]="placeholder"
+        [disabled]="disabled"
         (focus)="onFocus()"
         (blur)="onBlur()"
         (keydown)="onKeyDown($event)"
         (input)="onInput($event)"
-        class="w-full p-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        [class]="inputClasses"
         autocomplete="off"
       />
 
-      <div *ngIf="showDropdown && filteredOptions.length > 0"
+      <div *ngIf="showDropdown && filteredOptions.length > 0 && !disabled"
            [class]="dropdownClasses"
            class="absolute z-50 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
         <div
@@ -51,6 +52,7 @@ export interface AutocompleteOption {
 export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDestroy, OnChanges {
   @Input() options: AutocompleteOption[] = [];
   @Input() placeholder: string = 'Search...';
+  @Input() disabled: boolean = false;
   @Output() selectionChange = new EventEmitter<AutocompleteOption | null>();
 
   @ViewChild('inputElement', { static: false }) inputElement!: ElementRef<HTMLInputElement>;
@@ -132,6 +134,12 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
     else {
       this.dropdownClasses = 'mt-1 top-full';
     }
+  }
+
+  public get inputClasses(): string {
+    const baseClasses = 'w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500';
+    const disabledClasses = this.disabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-50';
+    return `${baseClasses} ${disabledClasses}`;
   }
 
   public onInput(event: Event) {
@@ -229,6 +237,7 @@ export class AutocompleteComponent implements ControlValueAccessor, OnInit, OnDe
   }
 
   setDisabledState(isDisabled: boolean): void {
+    this.disabled = isDisabled;
     if (isDisabled) {
       this.inputControl.disable();
     } else {
