@@ -10,7 +10,7 @@ import { GeminiEngine } from './ai-engine/gemini.engine';
 import { PerplexityEngine } from './ai-engine/perplexity.engine';
 import { GrokEngine } from './ai-engine/grok.engine';
 import { DeepseekEngine } from './ai-engine/deepseek.engine';
-import { OpenRouterEngine } from './ai-engine/openrouter.engine';
+import { OpenRouterEngine } from './ai-engine/domains/open-router/services/openrouter.engine';
 import { EngineRegistryService } from './ai-engine/engine-registry.service';
 import { AI_ENGINES } from './ai-engine/ai-engine.constants';
 import { AiApiEngine } from './ai-engine/ai-api-engine.base';

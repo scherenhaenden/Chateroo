@@ -6,3 +6,4 @@ node_modules/
 .idea
 src-tauri/binaries/
 
+apps/backend/dist/

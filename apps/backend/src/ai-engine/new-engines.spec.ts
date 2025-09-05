@@ -5,7 +5,7 @@ import { GeminiEngine } from './gemini.engine';
 import { PerplexityEngine } from './perplexity.engine';
 import { GrokEngine } from './grok.engine';
 import { DeepseekEngine } from './deepseek.engine';
-import { OpenRouterEngine } from './openrouter.engine';
+import { OpenRouterEngine } from './domains/open-router/services/openrouter.engine';
 
 describe.each([
   {
