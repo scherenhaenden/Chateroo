@@ -22,11 +22,12 @@
     "dev:backend": "npm run --workspace=backend start:dev",
     "build:frontend": "npm run --workspace=frontend build",
     "build:backend": "bash scripts/build-backend.sh",
+    "build:backend:tauri": "npm run build:backend",
     "build:all": "npm run build:frontend && npm run build:backend",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
-    "tauri:build:debug": "tauri build --debug"
+    "tauri:build": "npm run build:backend:tauri && tauri build",
+    "tauri:build:debug": "npm run build:backend:tauri && tauri build --debug"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.7.1",
