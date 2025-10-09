@@ -102,7 +102,6 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          sudo dnf check-update
           sudo dnf install -y nodejs npm webkit2gtk4.1-devel openssl-devel curl wget file libappindicator-gtk3-devel librsvg2-devel libxdo-devel
           sudo dnf groupinstall -y "c-development"
           npm install -g @tauri-apps/cli
@@ -125,22 +124,59 @@ jobs:
 
   release:
     needs: [build-tauri, build-linux-rpm, build-frontend]
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
+      - name: Download Ubuntu artifact
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          name: build-ubuntu-latest-v${{ needs.build-frontend.outputs.version }}
+          path: artifacts/build-ubuntu-latest-v${{ needs.build-frontend.outputs.version }}
+        continue-on-error: true
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-macos-latest-v${{ needs.build-frontend.outputs.version }}
+          path: artifacts/build-macos-latest-v${{ needs.build-frontend.outputs.version }}
+        continue-on-error: true
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-windows-latest-v${{ needs.build-frontend.outputs.version }}
+          path: artifacts/build-windows-latest-v${{ needs.build-frontend.outputs.version }}
+        continue-on-error: true
+
+      - name: Download RPM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-rpm-v${{ needs.build-frontend.outputs.version }}
+          path: artifacts/build-rpm-v${{ needs.build-frontend.outputs.version }}
+        continue-on-error: true
+
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-v${{ needs.build-frontend.outputs.version }}
+          path: artifacts/frontend-dist-v${{ needs.build-frontend.outputs.version }}
+        continue-on-error: true
 
       - name: List downloaded files
         run: ls -R artifacts
 
       - name: Zip website build
+        id: zip-website
         run: |
-          mv artifacts/frontend-dist-v${{ needs.build-frontend.outputs.version }} artifacts/website
-          cd artifacts/website
-          zip -r ../website-v${{ needs.build-frontend.outputs.version }}.zip .
-          cd ../..
+          if [ -d "artifacts/frontend-dist-v${{ needs.build-frontend.outputs.version }}" ]; then
+            cd artifacts/frontend-dist-v${{ needs.build-frontend.outputs.version }}
+            zip -r ../website-v${{ needs.build-frontend.outputs.version }}.zip .
+            cd ../..
+            echo "website_zip=artifacts/website-v${{ needs.build-frontend.outputs.version }}.zip" >> $GITHUB_OUTPUT
+          else
+            echo "Frontend artifact not found, skipping website zip."
+            echo "website_zip=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create Release
         id: create_release
@@ -150,13 +186,14 @@ jobs:
         with:
           tag_name: v${{ needs.build-frontend.outputs.version }}
           release_name: Release v${{ needs.build-frontend.outputs.version }}
-          body: "New release of Chateroo"
+          body: "New release of Chateroo. Some artifacts may be missing due to build failures."
           draft: false
           prerelease: false
+          fail_on_unmatched_files: false
           files: |
             artifacts/build-ubuntu-latest-v${{ needs.build-frontend.outputs.version }}/appimage/*.AppImage
             artifacts/build-ubuntu-latest-v${{ needs.build-frontend.outputs.version }}/deb/*.deb
             artifacts/build-macos-latest-v${{ needs.build-frontend.outputs.version }}/dmg/*.dmg
             artifacts/build-windows-latest-v${{ needs.build-frontend.outputs.version }}/msi/*.msi
             artifacts/build-rpm-v${{ needs.build-frontend.outputs.version }}/rpm/*.rpm
-            artifacts/website-v${{ needs.build-frontend.outputs.version }}.zip
+            ${{ steps.zip-website.outputs.website_zip }}
