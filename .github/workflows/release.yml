@@ -1,0 +1,148 @@
+name: Release Chateroo
+
+on:
+  push:
+    branches:
+      - build
+
+jobs:
+  build-frontend:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.package-version.outputs.current-version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Get package version
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build frontend and backend
+        run: npm run build:all
+
+      - name: Upload Frontend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-v${{ steps.package-version.outputs.current-version }}
+          path: apps/frontend/dist/frontend
+
+  build-tauri:
+    needs: build-frontend
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Download Frontend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-v${{ needs.build-frontend.outputs.version }}
+          path: apps/frontend/dist/frontend
+
+      - name: Build Tauri app
+        run: npm run tauri:build
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}-v${{ needs.build-frontend.outputs.version }}
+          path: src-tauri/target/release/bundle/
+
+  build-linux-rpm:
+    needs: build-frontend
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo dnf check-update
+          sudo dnf install -y nodejs npm webkit2gtk4.1-devel openssl-devel curl wget file libappindicator-gtk3-devel librsvg2-devel libxdo-devel
+          sudo dnf groupinstall -y "c-development"
+          npm install -g @tauri-apps/cli
+          npm install
+
+      - name: Download Frontend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-v${{ needs.build-frontend.outputs.version }}
+          path: apps/frontend/dist/frontend
+
+      - name: Build Tauri app
+        run: npm run tauri:build -- --target x86_64-unknown-linux-gnu
+
+      - name: Upload RPM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-rpm-v${{ needs.build-frontend.outputs.version }}
+          path: src-tauri/target/release/bundle/rpm/
+
+  release:
+    needs: [build-tauri, build-linux-rpm, build-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List downloaded files
+        run: ls -R artifacts
+
+      - name: Zip website build
+        run: |
+          mv artifacts/frontend-dist-v${{ needs.build-frontend.outputs.version }} artifacts/website
+          cd artifacts/website
+          zip -r ../website-v${{ needs.build-frontend.outputs.version }}.zip .
+          cd ../..
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.build-frontend.outputs.version }}
+          release_name: Release v${{ needs.build-frontend.outputs.version }}
+          body: "New release of Chateroo"
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/build-ubuntu-latest-v${{ needs.build-frontend.outputs.version }}/appimage/*.AppImage
+            artifacts/build-ubuntu-latest-v${{ needs.build-frontend.outputs.version }}/deb/*.deb
+            artifacts/build-macos-latest-v${{ needs.build-frontend.outputs.version }}/dmg/*.dmg
+            artifacts/build-windows-latest-v${{ needs.build-frontend.outputs.version }}/msi/*.msi
+            artifacts/build-rpm-v${{ needs.build-frontend.outputs.version }}/rpm/*.rpm
+            artifacts/website-v${{ needs.build-frontend.outputs.version }}.zip
