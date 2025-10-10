@@ -5,4 +5,3 @@ export interface Architecture {
   tokenizer: string;
   instruct_type?: string;
 }
-

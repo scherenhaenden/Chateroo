@@ -74,7 +74,9 @@ describe('LmStudioEngine', () => {
       const error = new Error('Connection refused');
       mockHttpService.post.mockReturnValue(throwError(() => error));
       const response = await engine.sendMessage(payload);
-      expect(response.content).toContain('Fehler bei der Verbindung mit LM Studio.');
+      expect(response.content).toContain(
+        'Fehler bei der Verbindung mit LM Studio.',
+      );
     });
   });
 
@@ -84,7 +86,9 @@ describe('LmStudioEngine', () => {
     it('should handle a stream correctly', async () => {
       const sseStream = new Readable();
       sseStream.push('data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n');
-      sseStream.push('data: {"choices":[{"delta":{"content":" stream!"}}]}\n\n');
+      sseStream.push(
+        'data: {"choices":[{"delta":{"content":" stream!"}}]}\n\n',
+      );
       sseStream.push('data: [DONE]\n\n');
       sseStream.push(null);
 
@@ -111,13 +115,17 @@ describe('LmStudioEngine', () => {
     });
 
     it('should handle stream connection errors', async () => {
-      mockHttpService.post.mockReturnValue(throwError(() => new Error('Stream Error')));
+      mockHttpService.post.mockReturnValue(
+        throwError(() => new Error('Stream Error')),
+      );
       const stream = engine.sendMessageStream(payload);
       const chunks = [];
       for await (const chunk of stream) {
         chunks.push(chunk);
       }
-      expect(chunks[0].content).toContain('Sorry, there was an error communicating with LM Studio.');
+      expect(chunks[0].content).toContain(
+        'Sorry, there was an error communicating with LM Studio.',
+      );
       expect(chunks[0].done).toBe(true);
     });
   });

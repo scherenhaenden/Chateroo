@@ -72,7 +72,7 @@ ${content.substring(0, 1500)}${content.length > 1500 ? '\n[...gekürzt]' : ''}`;
       let buffer = '';
 
       for await (const chunk of response.data) {
-        buffer += (chunk as any).toString();
+        buffer += chunk.toString();
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
@@ -85,7 +85,7 @@ ${content.substring(0, 1500)}${content.length > 1500 ? '\n[...gekürzt]' : ''}`;
             }
 
             try {
-              const parsed = JSON.parse(data) as any;
+              const parsed = JSON.parse(data);
               const content = parsed.choices?.[0]?.delta?.content as string;
               if (content) {
                 yield { content };

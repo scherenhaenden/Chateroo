@@ -12,7 +12,9 @@ async function bootstrap(): Promise<void> {
   // Swagger configuration
   const config = new DocumentBuilder()
     .setTitle('Chateroo API')
-    .setDescription('Chat API with multiple AI providers support including streaming capabilities')
+    .setDescription(
+      'Chat API with multiple AI providers support including streaming capabilities',
+    )
     .setVersion('1.0')
     .addTag('chat', 'Chat endpoints for sending messages to AI providers')
     .addTag('providers', 'Endpoints for managing AI providers and models')
@@ -27,7 +29,11 @@ async function bootstrap(): Promise<void> {
   });
 
   await app.listen(process.env.PORT ?? 3000);
-  console.log(`🚀 Application is running on: http://localhost:${process.env.PORT ?? 3000}`);
-  console.log(`📚 Swagger Documentation: http://localhost:${process.env.PORT ?? 3000}/api/docs`);
+  console.log(
+    `🚀 Application is running on: http://localhost:${process.env.PORT ?? 3000}`,
+  );
+  console.log(
+    `📚 Swagger Documentation: http://localhost:${process.env.PORT ?? 3000}/api/docs`,
+  );
 }
 void bootstrap();

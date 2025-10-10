@@ -3,4 +3,3 @@ export interface TopProvider {
   max_completion_tokens?: number;
   is_moderated: boolean;
 }
-

@@ -8,7 +8,6 @@ export type { ChatResponse } from './models/chat-response.model';
 export type { StreamChunk } from './models/stream-chunk.model';
 export type { ChatAttachment } from './models/chat-attachment.model';
 
-
 export abstract class AiApiEngine {
   public abstract readonly provider: string;
   /**

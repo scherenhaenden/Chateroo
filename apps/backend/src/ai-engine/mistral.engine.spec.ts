@@ -77,7 +77,9 @@ describe('MistralEngine', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      mockHttpService.post.mockReturnValue(throwError(() => new Error('API Error')));
+      mockHttpService.post.mockReturnValue(
+        throwError(() => new Error('API Error')),
+      );
       const response = await engine.sendMessage(payload);
       expect(response).toEqual({
         content: 'Sorry, there was an error communicating with Mistral.',

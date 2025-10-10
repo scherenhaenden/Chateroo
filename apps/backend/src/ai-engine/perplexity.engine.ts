@@ -44,9 +44,11 @@ export class PerplexityEngine extends AiApiEngine {
     } catch (error) {
       console.error(
         'Fehler bei der Kommunikation mit Perplexity:',
-        (error as any).response?.data || (error as any).message,
+        error.response?.data || error.message,
       );
-      return { content: 'Sorry, there was an error communicating with Perplexity.' };
+      return {
+        content: 'Sorry, there was an error communicating with Perplexity.',
+      };
     }
   }
 }

@@ -76,13 +76,20 @@ describe('GeminiEngine', () => {
       const payloadWithAttachment: ChatPayload = {
         ...payload,
         attachments: [
-          { name: 'test.txt', type: 'text/plain', size: 12, base64: Buffer.from('Hello file').toString('base64') }
+          {
+            name: 'test.txt',
+            type: 'text/plain',
+            size: 12,
+            base64: Buffer.from('Hello file').toString('base64'),
+          },
         ],
       };
 
-      mockHttpService.post.mockReturnValue(of({
-        data: { choices: [{ message: { content: 'response' } }] }
-      }));
+      mockHttpService.post.mockReturnValue(
+        of({
+          data: { choices: [{ message: { content: 'response' } }] },
+        }),
+      );
 
       await engine.sendMessage(payloadWithAttachment);
 
@@ -92,12 +99,14 @@ describe('GeminiEngine', () => {
         expect.objectContaining({
           messages: [{ role: 'user', content: expectedContent }],
         }),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
     it('should handle API errors gracefully', async () => {
-      mockHttpService.post.mockReturnValue(throwError(() => new Error('API Error')));
+      mockHttpService.post.mockReturnValue(
+        throwError(() => new Error('API Error')),
+      );
       const response = await engine.sendMessage(payload);
       expect(response).toEqual({
         content: 'Sorry, there was an error communicating with Gemini.',
@@ -114,7 +123,9 @@ describe('GeminiEngine', () => {
     it('should handle a stream correctly', async () => {
       const sseStream = new Readable();
       sseStream.push('data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n');
-      sseStream.push('data: {"choices":[{"delta":{"content":" Gemini!"}}]}\n\n');
+      sseStream.push(
+        'data: {"choices":[{"delta":{"content":" Gemini!"}}]}\n\n',
+      );
       sseStream.push('data: [DONE]\n\n');
       sseStream.push(null);
 
@@ -136,7 +147,7 @@ describe('GeminiEngine', () => {
       expect(httpService.post).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({ stream: true }),
-        expect.any(Object)
+        expect.any(Object),
       );
       expect(chunks).toEqual([
         { content: 'Hello' },
@@ -146,18 +157,22 @@ describe('GeminiEngine', () => {
     });
 
     it('should handle stream errors gracefully', async () => {
-       mockHttpService.post.mockReturnValue(throwError(() => new Error('Stream Error')));
+      mockHttpService.post.mockReturnValue(
+        throwError(() => new Error('Stream Error')),
+      );
 
-       const stream = engine.sendMessageStream(payload);
-       const chunks = [];
-       for await (const chunk of stream) {
-         chunks.push(chunk);
-       }
+      const stream = engine.sendMessageStream(payload);
+      const chunks = [];
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
 
-       expect(chunks).toEqual([{
-         content: 'Sorry, there was an error communicating with Gemini.',
-         done: true
-       }]);
+      expect(chunks).toEqual([
+        {
+          content: 'Sorry, there was an error communicating with Gemini.',
+          done: true,
+        },
+      ]);
     });
   });
 });

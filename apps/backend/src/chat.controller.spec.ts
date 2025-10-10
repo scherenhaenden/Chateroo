@@ -140,8 +140,14 @@ describe('ChatController', () => {
         'text/event-stream',
       );
       expect(res.write).toHaveBeenCalledTimes(3);
-      expect(res.write).toHaveBeenNthCalledWith(1, 'data: {"content":"Hello"}\n\n');
-      expect(res.write).toHaveBeenNthCalledWith(2, 'data: {"content":" there"}\n\n');
+      expect(res.write).toHaveBeenNthCalledWith(
+        1,
+        'data: {"content":"Hello"}\n\n',
+      );
+      expect(res.write).toHaveBeenNthCalledWith(
+        2,
+        'data: {"content":" there"}\n\n',
+      );
       expect(res.write).toHaveBeenNthCalledWith(3, 'data: [DONE]\n\n');
       expect(res.end).toHaveBeenCalled();
     });

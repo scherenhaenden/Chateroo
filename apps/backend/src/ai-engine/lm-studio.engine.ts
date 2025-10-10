@@ -48,11 +48,14 @@ export class LmStudioEngine extends AiApiEngine {
       }
       return { content };
     } catch (error) {
-      console.error('Fehler bei der Kommunikation mit LM Studio:', (error as any).message);
+      console.error(
+        'Fehler bei der Kommunikation mit LM Studio:',
+        error.message,
+      );
       return {
         content:
           'Fehler bei der Verbindung mit LM Studio. Stelle sicher, dass der Server läuft. ' +
-          `(Details: ${(error as any).message})`,
+          `(Details: ${error.message})`,
       };
     }
   }
@@ -81,7 +84,7 @@ export class LmStudioEngine extends AiApiEngine {
       let buffer = '';
 
       for await (const chunk of response.data) {
-        buffer += (chunk as any).toString();
+        buffer += chunk.toString();
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
@@ -94,7 +97,7 @@ export class LmStudioEngine extends AiApiEngine {
             }
 
             try {
-              const parsed = JSON.parse(data) as any;
+              const parsed = JSON.parse(data);
               const content = parsed.choices?.[0]?.delta?.content as string;
               if (content) {
                 yield { content };

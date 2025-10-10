@@ -45,9 +45,11 @@ export class MistralEngine extends AiApiEngine {
     } catch (error) {
       console.error(
         'Fehler bei der Kommunikation mit Mistral:',
-        (error as any).response?.data || (error as any).message,
+        error.response?.data || error.message,
       );
-      return { content: 'Sorry, there was an error communicating with Mistral.' };
+      return {
+        content: 'Sorry, there was an error communicating with Mistral.',
+      };
     }
   }
 }

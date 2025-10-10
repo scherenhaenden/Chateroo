@@ -14,8 +14,8 @@ class MockAiEngine extends AiApiEngine {
 
 // ADDED: Mock for OpenAI to handle the provider aggregation test case
 class MockOpenAiEngine extends AiApiEngine {
-    provider = 'openai';
-    sendMessage = jest.fn();
+  provider = 'openai';
+  sendMessage = jest.fn();
 }
 
 // Mock OpenRouter Engine
@@ -54,12 +54,16 @@ describe('ChatService', () => {
               }
               // ADDED: Handle 'openai' provider
               if (provider === 'openai') {
-                  return mockOpenAiEngine;
+                return mockOpenAiEngine;
               }
               return null;
             }),
             // ADDED: Include 'openai' in the list of providers
-            getAllProviders: jest.fn(() => ['mock-provider', 'openrouter', 'openai']),
+            getAllProviders: jest.fn(() => [
+              'mock-provider',
+              'openrouter',
+              'openai',
+            ]),
           },
         },
       ],
@@ -111,12 +115,17 @@ describe('ChatService', () => {
     it('should extract prompt from messages', async () => {
       const payload: SendMessageDto = {
         provider: 'mock-provider',
-        messages: [{ role: 'user', content: 'Message 1' }, { role: 'assistant', content: 'Message 2' }],
+        messages: [
+          { role: 'user', content: 'Message 1' },
+          { role: 'assistant', content: 'Message 2' },
+        ],
       };
       await service.sendMessage(payload);
-      expect(mockEngine.sendMessage).toHaveBeenCalledWith(expect.objectContaining({
-        prompt: 'Message 1\nMessage 2'
-      }));
+      expect(mockEngine.sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: 'Message 1\nMessage 2',
+        }),
+      );
     });
   });
 
@@ -173,21 +182,28 @@ describe('ChatService', () => {
         },
         // ADDED: Include openai in the expected output
         {
-            id: 'openai',
-            name: 'OpenAI',
-            description: 'OpenAI GPT models',
-            requiresApiKey: true,
-            supportsModels: true,
-        }
+          id: 'openai',
+          name: 'OpenAI',
+          description: 'OpenAI GPT models',
+          requiresApiKey: true,
+          supportsModels: true,
+        },
       ]);
     });
 
     it('getModelsForProviders should aggregate models from multiple providers', async () => {
-      const openRouterModels = [{ id: 'or-model', name: 'OR Model', provider: 'openrouter' }];
-      mockOpenRouterEngine.listModels.mockResolvedValue(openRouterModels as any);
+      const openRouterModels = [
+        { id: 'or-model', name: 'OR Model', provider: 'openrouter' },
+      ];
+      mockOpenRouterEngine.listModels.mockResolvedValue(
+        openRouterModels as any,
+      );
 
       // For 'openai', it will return a static list.
-      const result = await service.getModelsForProviders(['openrouter', 'openai'], 'api-key');
+      const result = await service.getModelsForProviders(
+        ['openrouter', 'openai'],
+        'api-key',
+      );
 
       expect(result.openrouter).toEqual(openRouterModels);
       expect(result.openai.length).toBeGreaterThan(0);
