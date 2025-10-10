@@ -103,7 +103,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo dnf install -y nodejs npm webkit2gtk4.1-devel openssl-devel curl wget file libappindicator-gtk3-devel librsvg2-devel libxdo-devel
-          sudo dnf group install -y "C Development Tools and Libraries"
+          sudo dnf groupinstall -y "Development Tools" "Development Libraries"
           npm install -g @tauri-apps/cli
           npm install
 
