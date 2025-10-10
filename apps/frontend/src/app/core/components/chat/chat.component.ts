@@ -290,6 +290,9 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.isSidePanelOpen = !this.isSidePanelOpen;
   }
 
+  /**
+   * Opens the canvas view with the specified code.
+   */
   public openCanvasView(code: string): void {
     this.activeCanvasCode = code;
     this.showCanvasView = true;
@@ -303,6 +306,9 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.isSidePanelOpen = false;
   }
 
+  /**
+   * Opens the live code view with the provided code.
+   */
   public openLiveCodeView(code: string): void {
     this.activeLiveCode = code;
     this.showLiveCodeView = true;
@@ -310,6 +316,9 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.isSidePanelOpen = true;
   }
 
+  /**
+   * Closes the live code view and resets related states.
+   */
   public closeLiveCodeView(): void {
     this.showLiveCodeView = false;
     this.activeLiveCode = null;
@@ -367,7 +376,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   /**
    * Handles live code request from a chat message.
-   * @param code The live code
+   * @param code The live code.
    */
   public onLiveCodeRequested(code: string): void {
     this.openLiveCodeView(code);
