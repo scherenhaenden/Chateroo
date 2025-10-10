@@ -33,10 +33,12 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   // Canvas and Live Code options
   public chatOptions: ChatOptions = {
     canvasEnabled: false,
-    liveCodeEnabled: false
+    liveCodeEnabled: false,
   };
-  public showCanvasModal = false;
-  public showLiveCodeModal = false;
+  public showCanvasView = false;
+  public showLiveCodeView = false;
+  public activeCanvasCode: string | null = null;
+  public activeLiveCode: string | null = null;
 
   // OpenRouter selection state - managed by OpenRouter component
   public openRouterSelection: OpenRouterSelection = { provider: '', model: '' };
@@ -283,32 +285,26 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.chatOptions.liveCodeEnabled = !this.chatOptions.liveCodeEnabled;
   }
 
-  /**
-   * Opens the canvas modal dialog.
-   */
-  public openCanvasModal(): void {
-    this.showCanvasModal = true;
+  public openCanvasView(code: string): void {
+    this.activeCanvasCode = code;
+    this.showCanvasView = true;
+    this.showLiveCodeView = false;
   }
 
-  /**
-   * Closes the canvas modal dialog.
-   */
-  public closeCanvasModal(): void {
-    this.showCanvasModal = false;
+  public closeCanvasView(): void {
+    this.showCanvasView = false;
+    this.activeCanvasCode = null;
   }
 
-  /**
-   * Opens the live code modal dialog.
-   */
-  public openLiveCodeModal(): void {
-    this.showLiveCodeModal = true;
+  public openLiveCodeView(code: string): void {
+    this.activeLiveCode = code;
+    this.showLiveCodeView = true;
+    this.showCanvasView = false;
   }
 
-  /**
-   * Closes the live code modal dialog.
-   */
-  public closeLiveCodeModal(): void {
-    this.showLiveCodeModal = false;
+  public closeLiveCodeView(): void {
+    this.showLiveCodeView = false;
+    this.activeLiveCode = null;
   }
 
   /**
@@ -357,11 +353,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
    * @param code The canvas code
    */
   public onCanvasRequested(code: string): void {
-    const lastMessage = this.messages[this.messages.length - 1];
-    if (lastMessage) {
-      lastMessage.canvasCode = code;
-    }
-    this.openCanvasModal();
+    this.openCanvasView(code);
   }
 
   /**
@@ -369,11 +361,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
    * @param code The live code
    */
   public onLiveCodeRequested(code: string): void {
-    const lastMessage = this.messages[this.messages.length - 1];
-    if (lastMessage) {
-      lastMessage.liveCode = code;
-    }
-    this.openLiveCodeModal();
+    this.openLiveCodeView(code);
   }
 
   /**
