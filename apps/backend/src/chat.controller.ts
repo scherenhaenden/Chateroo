@@ -239,10 +239,6 @@ export class ChatController {
     }
   }
 
-  /**
-   * Get list of all available AI providers in the system.
-   * This includes all configured AI engines like lm-studio, openai, openrouter, etc.
-   */
   @Get('providers')
   @ApiTags('providers')
   @ApiOperation({
@@ -263,6 +259,11 @@ export class ChatController {
           description: { type: 'string', example: 'OpenAI GPT models' },
           requiresApiKey: { type: 'boolean', example: true },
           supportsModels: { type: 'boolean', example: true },
+  /**
+   * Retrieves a list of all available AI providers configured in the system.
+   * This function calls the chatService.getAvailableProviders method to fetch the providers.
+   * It handles any errors that may occur during the fetching process and logs them to the console.
+   */
         },
       },
     },
@@ -276,10 +277,6 @@ export class ChatController {
     }
   }
 
-  /**
-   * Get models for specific AI provider(s).
-   * This endpoint allows fetching models for one or multiple providers.
-   */
   @Get('models')
   @ApiTags('providers')
   @ApiOperation({
@@ -335,6 +332,15 @@ export class ChatController {
             name: 'GPT-4 (via OpenRouter)',
             description: 'GPT-4 through OpenRouter',
             context_length: 8192,
+  /**
+   * Retrieves models for specified AI provider(s).
+   * This function allows fetching models for one or multiple providers, which are provided as a comma-separated list.
+   * It processes the input to create a list of providers and then calls the chatService's getModelsForProviders method
+   * to retrieve the corresponding models. Error handling is included to log any issues encountered during the process.
+   *
+   * @param {string} providers - Comma-separated list of provider IDs (e.g., "openai,openrouter").
+   * @param {string} [apiKey] - API key for providers that require authentication (optional).
+   */
             provider: 'openrouter',
           },
         ],

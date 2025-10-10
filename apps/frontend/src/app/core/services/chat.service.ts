@@ -367,8 +367,7 @@ export class ChatService {
   }
 
   /**
-   * Get models for specific AI provider(s), grouped by provider.
-   * This method allows fetching models for one or multiple providers.
+   * Fetch models for specified AI provider(s), optionally using an API key.
    *
    * @param providers Array of provider IDs (e.g., ['openai', 'openrouter'])
    * @param apiKey Optional API key for providers that require authentication
@@ -402,11 +401,9 @@ export class ChatService {
   }
 
   /**
-   * Convenience method to get models for a single provider.
-   *
+   * Retrieves models for a specified provider.
    * @param provider Single provider ID (e.g., 'openai')
    * @param apiKey Optional API key for providers that require authentication
-   * @returns Observable of models for the specified provider
    */
   public getModelsForProvider(
     provider: string,

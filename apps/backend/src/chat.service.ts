@@ -112,8 +112,7 @@ export class ChatService {
   }
 
   /**
-   * Get all available AI providers configured in the system.
-   * Returns a list of provider metadata including capabilities.
+   * Retrieves a list of all available AI providers configured in the system.
    */
   public async getAvailableProviders(): Promise<Array<{
     id: string;
@@ -135,7 +134,12 @@ export class ChatService {
 
   /**
    * Get models for specified providers, grouped by provider.
-   * Returns an object where keys are provider IDs and values are arrays of models.
+   * This function iterates over the provided array of provider IDs, fetching models for each provider using the getModelsForProvider method.
+   * If an error occurs during the fetching process, it logs the error and assigns an empty array to the corresponding provider ID in the result.
+   * The final output is an object where keys are provider IDs and values are arrays of models.
+   *
+   * @param {string[]} providers - An array of provider IDs for which to fetch models.
+   * @param {string} [apiKey] - An optional API key for authentication.
    */
   public async getModelsForProviders(
     providers: string[],
@@ -163,8 +167,16 @@ export class ChatService {
   }
 
   /**
-   * Get models for a single provider.
-   * Different providers have different model discovery mechanisms.
+   * Get models for a single provider based on the provider ID.
+   *
+   * The function retrieves the appropriate model list for the specified provider by checking the engine registry.
+   * It handles various providers, including 'openrouter', 'openai', 'lm-studio', 'mistral', 'gemini', 'perplexity', 'grok', and 'deepseek',
+   * each with its own model discovery mechanism. If the provider is not found, an error is thrown.
+   *
+   * @param providerId - The ID of the provider for which to retrieve models.
+   * @param apiKey - An optional API key for providers that require authentication.
+   * @returns A promise that resolves to an array of model objects for the specified provider.
+   * @throws Error If the provider is not found in the engine registry.
    */
   private async getModelsForProvider(
     providerId: string,
@@ -275,18 +287,24 @@ export class ChatService {
     return descriptions[provider] || `${provider} AI provider`;
   }
 
+  /**
+   * Checks if the given provider requires an API key.
+   */
   private providerRequiresApiKey(provider: string): boolean {
     const requiresKey = ['openai', 'openrouter', 'mistral', 'gemini', 'perplexity', 'grok', 'deepseek'];
     return requiresKey.includes(provider);
   }
 
+  /**
+   * Checks if the given provider supports model selection.
+   */
   private providerSupportsModels(provider: string): boolean {
     // Most providers support model selection, dummy and lm-studio might not
     return provider !== 'dummy';
   }
 
   /**
-   * Static model lists for providers that don't have dynamic model APIs
+   * Returns a list of static OpenAI models.
    */
   private getOpenAIModels() {
     return [
@@ -298,12 +316,18 @@ export class ChatService {
     ];
   }
 
+  /**
+   * Retrieves the LM Studio models.
+   */
   private getLMStudioModels() {
     return [
       { id: 'local-model', name: 'Local Model', description: 'Currently loaded local model', context_length: 4096 },
     ];
   }
 
+  /**
+   * Retrieves a list of Mistral models with their details.
+   */
   private getMistralModels() {
     return [
       { id: 'mistral-large', name: 'Mistral Large', description: 'Most capable Mistral model', context_length: 32000 },
@@ -312,6 +336,9 @@ export class ChatService {
     ];
   }
 
+  /**
+   * Retrieves a list of Gemini models with their details.
+   */
   private getGeminiModels() {
     return [
       { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Latest Gemini Pro model', context_length: 1000000 },
@@ -320,6 +347,9 @@ export class ChatService {
     ];
   }
 
+  /**
+   * Retrieves a list of perplexity models.
+   */
   private getPerplexityModels() {
     return [
       { id: 'llama-3.1-sonar-large-128k-online', name: 'Llama 3.1 Sonar Large (Online)', description: 'Large online model', context_length: 127072 },
@@ -327,12 +357,18 @@ export class ChatService {
     ];
   }
 
+  /**
+   * Retrieves the Grok AI models.
+   */
   private getGrokModels() {
     return [
       { id: 'grok-beta', name: 'Grok Beta', description: 'Grok AI model', context_length: 131072 },
     ];
   }
 
+  /**
+   * Retrieves an array of DeepSeek models.
+   */
   private getDeepSeekModels() {
     return [
       { id: 'deepseek-chat', name: 'DeepSeek Chat', description: 'DeepSeek conversational model', context_length: 32000 },
