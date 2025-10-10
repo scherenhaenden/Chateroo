@@ -44,7 +44,7 @@ describe.each([
     url: 'https://openrouter.ai/api/v1/chat/completions',
     model: 'openai/gpt-4o-mini',
   },
-])('$nameEngine', ({ name, Engine, url, model }) => {
+])('$name Engine', ({ name, Engine, url, model }) => {
   let engine: InstanceType<typeof Engine>;
   let httpService: { post: jest.Mock };
 
@@ -64,16 +64,34 @@ describe.each([
     const result = await engine.sendMessage({ prompt, apiKey });
 
     expect(result).toEqual({ content: 'Hi!' });
-    expect(httpService.post).toHaveBeenCalledWith(
-      url,
-      { model, messages: [{ role: 'user', content: prompt }] },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
+
+    // OpenRouter has a more complex request body and headers
+    if (name === 'OpenRouter') {
+      expect(httpService.post).toHaveBeenCalledWith(
+        url,
+        { model, messages: [{ role: 'user', content: prompt }], stream: false },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+            'HTTP-Referer': 'https://chateroo.app',
+            'X-Title': 'Chateroo',
+          },
         },
-      },
-    );
+      );
+    } else {
+      // All other engines have a simpler request structure
+      expect(httpService.post).toHaveBeenCalledWith(
+        url,
+        { model, messages: [{ role: 'user', content: prompt }] },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+        },
+      );
+    }
   });
 
   it('returns friendly error message on failure', async () => {
@@ -83,8 +101,14 @@ describe.each([
 
     const result = await engine.sendMessage({ prompt, apiKey });
 
+    // OpenRouter has a more specific error message
+    const expectedContent =
+      name === 'OpenRouter'
+        ? 'Sorry, there was an error communicating with OpenRouter. Please try again.'
+        : `Sorry, there was an error communicating with ${name}.`;
+
     expect(result).toEqual({
-      content: `Sorry, there was an error communicating with ${name}.`,
+      content: expectedContent,
     });
   });
 });
