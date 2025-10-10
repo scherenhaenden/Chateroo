@@ -12,8 +12,10 @@ const mockHttpService = {
 describe('DeepseekEngine', () => {
   let engine: DeepseekEngine;
   let httpService: HttpService;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(async () => {
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DeepseekEngine,
@@ -30,6 +32,7 @@ describe('DeepseekEngine', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    consoleErrorSpy.mockRestore();
   });
 
   it('should be defined', () => {
