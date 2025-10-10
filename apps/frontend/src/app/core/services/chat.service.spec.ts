@@ -28,8 +28,8 @@ describe('ChatService', () => {
 
   it('should add message to current chat and emit currentChat$', (done) => {
     const testMessage: ChatMessage = {
-      sender: 'user',
-      text: 'Test message'
+      role: 'user',
+      content: 'Test message'
     };
 
     // Subscribe to currentChat$ to monitor changes
@@ -46,7 +46,7 @@ describe('ChatService', () => {
         // After adding test message
         expect(chat).toBeTruthy();
         expect(chat!.messages.length).toBe(2);
-        expect(chat!.messages[1].text).toBe('Test message');
+        expect(chat!.messages[1].content).toBe('Test message');
         done();
       }
     });
