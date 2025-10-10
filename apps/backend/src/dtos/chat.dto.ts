@@ -46,16 +46,7 @@ export class SendMessageDto {
   @ApiProperty({
     description: 'The AI provider to use for processing the message',
     example: 'lm-studio',
-    enum: [
-      'openai',
-      'gemini',
-      'lm-studio',
-      'openrouter',
-      'mistral',
-      'perplexity',
-      'grok',
-      'deepseek',
-    ],
+    enum: ['openai', 'gemini', 'lm-studio', 'openrouter', 'mistral', 'perplexity', 'grok', 'deepseek'],
   })
   provider: string;
 
@@ -67,8 +58,7 @@ export class SendMessageDto {
   messages?: ChatMessage[];
 
   @ApiProperty({
-    description:
-      'Single prompt message (legacy format for backward compatibility)',
+    description: 'Single prompt message (legacy format for backward compatibility)',
     example: 'What is the weather like today?',
     required: false,
   })

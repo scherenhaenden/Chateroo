@@ -62,9 +62,7 @@ describe('OpenRouterEngine', () => {
     });
 
     it('should return an empty array on API error', async () => {
-      mockHttpService.get.mockReturnValue(
-        throwError(() => new Error('API Error')),
-      );
+      mockHttpService.get.mockReturnValue(throwError(() => new Error('API Error')));
       const models = await engine.listModels('test-key');
       expect(models).toEqual([]);
     });
@@ -130,13 +128,9 @@ describe('OpenRouterEngine', () => {
     });
 
     it('should handle a generic error', async () => {
-      mockHttpService.post.mockReturnValue(
-        throwError(() => new Error('Some other error')),
-      );
+      mockHttpService.post.mockReturnValue(throwError(() => new Error('Some other error')));
       const response = await engine.sendMessage(payload);
-      expect(response.content).toContain(
-        'Sorry, there was an error communicating with OpenRouter',
-      );
+      expect(response.content).toContain('Sorry, there was an error communicating with OpenRouter');
     });
   });
 });

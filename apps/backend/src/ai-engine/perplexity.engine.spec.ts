@@ -49,9 +49,7 @@ describe('PerplexityEngine', () => {
     it('should send a request to the Perplexity API and return the content', async () => {
       const mockResponse: AxiosResponse = {
         data: {
-          choices: [
-            { message: { content: 'The capital of France is Paris.' } },
-          ],
+          choices: [{ message: { content: 'The capital of France is Paris.' } }],
         },
         status: 200,
         statusText: 'OK',
@@ -79,9 +77,7 @@ describe('PerplexityEngine', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      mockHttpService.post.mockReturnValue(
-        throwError(() => new Error('API Error')),
-      );
+      mockHttpService.post.mockReturnValue(throwError(() => new Error('API Error')));
       const response = await engine.sendMessage(payload);
       expect(response).toEqual({
         content: 'Sorry, there was an error communicating with Perplexity.',

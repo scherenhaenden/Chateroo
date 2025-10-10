@@ -296,7 +296,8 @@ export class ChatController {
   })
   @ApiQuery({
     name: 'apiKey',
-    description: 'API key for providers that require authentication (optional)',
+    description:
+      'API key for providers that require authentication (optional)',
     required: false,
     example: 'sk-...',
   })
@@ -312,10 +313,7 @@ export class ChatController {
           properties: {
             id: { type: 'string', example: 'gpt-4' },
             name: { type: 'string', example: 'GPT-4' },
-            description: {
-              type: 'string',
-              example: 'Most capable GPT-4 model',
-            },
+            description: { type: 'string', example: 'Most capable GPT-4 model' },
             context_length: { type: 'number', example: 8192 },
             provider: { type: 'string', example: 'openai' },
           },
@@ -348,7 +346,7 @@ export class ChatController {
     @Query('apiKey') apiKey?: string,
   ) {
     try {
-      const providerList = providers.split(',').map((p) => p.trim());
+      const providerList = providers.split(',').map(p => p.trim());
       return await this.chatService.getModelsForProviders(providerList, apiKey);
     } catch (error) {
       console.error('Error fetching models for providers:', error);

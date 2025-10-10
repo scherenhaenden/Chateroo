@@ -44,7 +44,7 @@ export class GrokEngine extends AiApiEngine {
     } catch (error) {
       console.error(
         'Fehler bei der Kommunikation mit Grok:',
-        error.response?.data || error.message,
+        (error as any).response?.data || (error as any).message,
       );
       return { content: 'Sorry, there was an error communicating with Grok.' };
     }

@@ -49,9 +49,7 @@ describe('GrokEngine', () => {
     it('should send a request to the Grok API and return the content', async () => {
       const mockResponse: AxiosResponse = {
         data: {
-          choices: [
-            { message: { content: 'Why did the chicken cross the road?' } },
-          ],
+          choices: [{ message: { content: 'Why did the chicken cross the road?' } }],
         },
         status: 200,
         statusText: 'OK',
@@ -75,15 +73,11 @@ describe('GrokEngine', () => {
           },
         },
       );
-      expect(response).toEqual({
-        content: 'Why did the chicken cross the road?',
-      });
+      expect(response).toEqual({ content: 'Why did the chicken cross the road?' });
     });
 
     it('should handle API errors gracefully', async () => {
-      mockHttpService.post.mockReturnValue(
-        throwError(() => new Error('API Error')),
-      );
+      mockHttpService.post.mockReturnValue(throwError(() => new Error('API Error')));
       const response = await engine.sendMessage(payload);
       expect(response).toEqual({
         content: 'Sorry, there was an error communicating with Grok.',

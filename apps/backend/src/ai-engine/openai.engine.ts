@@ -16,25 +16,19 @@ export class OpenAiEngine extends AiApiEngine {
   }
 
   private processAttachments(attachments: ChatPayload['attachments']): string {
-    return (
-      attachments
-        ?.map((att) => {
-          if (att.type.startsWith('image/')) {
-            return `Bild: ${att.name} (${this.formatFileSize(att.size)})`;
-          } else if (this.isTextFile(att.type)) {
-            try {
-              const content = Buffer.from(att.base64, 'base64').toString(
-                'utf-8',
-              );
-              return `Datei: ${att.name}\nInhalt:\n${content.substring(0, 1000)}${content.length > 1000 ? '...' : ''}`;
-            } catch {
-              return `Datei: ${att.name} (${this.formatFileSize(att.size)}) - Konnte nicht gelesen werden`;
-            }
-          }
-          return `Datei: ${att.name} (${this.formatFileSize(att.size)})`;
-        })
-        .join('\n') || ''
-    );
+    return attachments?.map(att => {
+      if (att.type.startsWith('image/')) {
+        return `Bild: ${att.name} (${this.formatFileSize(att.size)})`;
+      } else if (this.isTextFile(att.type)) {
+        try {
+          const content = Buffer.from(att.base64, 'base64').toString('utf-8');
+          return `Datei: ${att.name}\nInhalt:\n${content.substring(0, 1000)}${content.length > 1000 ? '...' : ''}`;
+        } catch {
+          return `Datei: ${att.name} (${this.formatFileSize(att.size)}) - Konnte nicht gelesen werden`;
+        }
+      }
+      return `Datei: ${att.name} (${this.formatFileSize(att.size)})`;
+    }).join('\n') || '';
   }
 
   /**
@@ -55,11 +49,12 @@ export class OpenAiEngine extends AiApiEngine {
 
       // TODO: Hier würde die echte OpenAI API-Integration stehen
       // Für jetzt simulieren wir die Antwort
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const response = `OpenAI würde auf "${payload.prompt}" antworten.`;
 
       return { content: response };
+
     } catch (error) {
       console.error('Error in OpenAiEngine:', error);
       throw error;

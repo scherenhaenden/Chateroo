@@ -55,7 +55,7 @@ describe('DeepseekEngine', () => {
         statusText: 'OK',
         headers: {},
         config: {
-          headers: undefined,
+          headers: undefined
         },
       };
       mockHttpService.post.mockReturnValue(of(mockResponse));
@@ -98,7 +98,7 @@ describe('DeepseekEngine', () => {
         statusText: 'OK',
         headers: {},
         config: {
-          headers: undefined,
+          headers: undefined
         },
       };
       mockHttpService.post.mockReturnValue(of(invalidResponse));
