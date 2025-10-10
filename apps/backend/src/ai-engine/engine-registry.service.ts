@@ -30,4 +30,12 @@ export class EngineRegistryService {
   public getProviders(): string[] {
     return Array.from(this.engines.keys());
   }
+
+  /**
+   * Returns an array of all registered provider keys (alias for getProviders).
+   * Used by ChatService for listing all available AI providers.
+   */
+  public getAllProviders(): string[] {
+    return this.getProviders();
+  }
 }

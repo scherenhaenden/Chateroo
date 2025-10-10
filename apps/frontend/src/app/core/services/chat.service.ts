@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject, BehaviorSubject } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ChatSession, ChatMessage } from '../../models/chat.model';
 import { ChatSessionStorageService } from './chat-session-storage.service';
 import { OpenRouterModel, OpenRouterProvider } from '../../models/openrouter.model';
@@ -343,5 +344,82 @@ export class ChatService {
         // Note: Attachments are handled separately in the payload to avoid type conflicts
         // The original ChatAttachment format requires id, url, isImage which are UI-specific
       }));
+  }
+
+  /**
+   * Get all available AI providers from the backend.
+   * Returns metadata about each provider including capabilities.
+   */
+  public getAvailableProviders(): Observable<Array<{
+    id: string;
+    name: string;
+    description: string;
+    requiresApiKey: boolean;
+    supportsModels: boolean;
+  }>> {
+    return this.http.get<Array<{
+      id: string;
+      name: string;
+      description: string;
+      requiresApiKey: boolean;
+      supportsModels: boolean;
+    }>>(`${this.apiUrl}/providers`);
+  }
+
+  /**
+   * Get models for specific AI provider(s), grouped by provider.
+   * This method allows fetching models for one or multiple providers.
+   *
+   * @param providers Array of provider IDs (e.g., ['openai', 'openrouter'])
+   * @param apiKey Optional API key for providers that require authentication
+   * @returns Observable of models grouped by provider ID
+   */
+  public getModelsForProviders(
+    providers: string[],
+    apiKey?: string
+  ): Observable<Record<string, Array<{
+    id: string;
+    name: string;
+    description?: string;
+    context_length?: number;
+    provider: string;
+  }>>> {
+    const params: { [key: string]: string } = {
+      providers: providers.join(',')
+    };
+
+    if (apiKey) {
+      params['apiKey'] = apiKey;
+    }
+
+    return this.http.get<Record<string, Array<{
+      id: string;
+      name: string;
+      description?: string;
+      context_length?: number;
+      provider: string;
+    }>>>(`${this.apiUrl}/models`, { params });
+  }
+
+  /**
+   * Convenience method to get models for a single provider.
+   *
+   * @param provider Single provider ID (e.g., 'openai')
+   * @param apiKey Optional API key for providers that require authentication
+   * @returns Observable of models for the specified provider
+   */
+  public getModelsForProvider(
+    provider: string,
+    apiKey?: string
+  ): Observable<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    context_length?: number;
+    provider: string;
+  }>> {
+    return this.getModelsForProviders([provider], apiKey).pipe(
+      map(result => result[provider] || [])
+    );
   }
 }
