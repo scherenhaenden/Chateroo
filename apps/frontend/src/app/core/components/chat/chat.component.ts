@@ -39,6 +39,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   public showLiveCodeView = false;
   public activeCanvasCode: string | null = null;
   public activeLiveCode: string | null = null;
+  public isSidePanelOpen = false;
 
   // OpenRouter selection state - managed by OpenRouter component
   public openRouterSelection: OpenRouterSelection = { provider: '', model: '' };
@@ -285,26 +286,34 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.chatOptions.liveCodeEnabled = !this.chatOptions.liveCodeEnabled;
   }
 
+  public toggleSidePanel(): void {
+    this.isSidePanelOpen = !this.isSidePanelOpen;
+  }
+
   public openCanvasView(code: string): void {
     this.activeCanvasCode = code;
     this.showCanvasView = true;
     this.showLiveCodeView = false;
+    this.isSidePanelOpen = true;
   }
 
   public closeCanvasView(): void {
     this.showCanvasView = false;
     this.activeCanvasCode = null;
+    this.isSidePanelOpen = false;
   }
 
   public openLiveCodeView(code: string): void {
     this.activeLiveCode = code;
     this.showLiveCodeView = true;
     this.showCanvasView = false;
+    this.isSidePanelOpen = true;
   }
 
   public closeLiveCodeView(): void {
     this.showLiveCodeView = false;
     this.activeLiveCode = null;
+    this.isSidePanelOpen = false;
   }
 
   /**
